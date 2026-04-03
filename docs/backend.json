@@ -1,0 +1,518 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user of the AgriShare application, defining their role and basic profile information. Authentication is handled by an external system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user within the AgriShare application, determining their access rights (e.g., ADMIN, INVESTOR, MANAGER, EMPLOYEE).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Optional phone number for communication."
+        },
+        "address": {
+          "type": "string",
+          "description": "Optional physical address of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "role",
+        "createdAt"
+      ]
+    },
+    "Investment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Investment",
+      "type": "object",
+      "description": "Records an investment made by a user into the AgriShare farm's operational activity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Investment entity."
+        },
+        "investorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile (INVESTOR role) who made this investment. (Relationship: UserProfile 1:N Investment)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary amount of the investment."
+        },
+        "investmentDate": {
+          "type": "string",
+          "description": "The date and time when the investment was made.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description or notes about the investment."
+        },
+        "recordedByUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who recorded this investment. (Relationship: UserProfile 1:N Investment)"
+        }
+      },
+      "required": [
+        "id",
+        "investorId",
+        "amount",
+        "investmentDate",
+        "recordedByUserId"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a financial entry (income) or exit (expense) transaction for the farm's accounting.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Transaction entity."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of transaction, either 'INCOME' or 'EXPENSE'.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the transaction (e.g., 'Egg Sales', 'Chicken Sales', 'Feed', 'Medication', 'Salaries', 'Maintenance', 'Other Income', 'Other Expense')."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary amount of the transaction."
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "The date and time when the transaction occurred.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional detailed description of the transaction."
+        },
+        "recordedByUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who recorded this transaction. (Relationship: UserProfile 1:N Transaction)"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "category",
+        "amount",
+        "transactionDate",
+        "recordedByUserId"
+      ]
+    },
+    "ProductionRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProductionRecord",
+      "type": "object",
+      "description": "Stores daily production data for the poultry farm, including egg count, mortality, and total number of chickens.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ProductionRecord entity."
+        },
+        "recordDate": {
+          "type": "string",
+          "description": "The date and time for which this production record applies.",
+          "format": "date-time"
+        },
+        "eggsProduced": {
+          "type": "number",
+          "description": "The total number of eggs produced on this date."
+        },
+        "mortalityCount": {
+          "type": "number",
+          "description": "The number of chickens that died on this date."
+        },
+        "totalChickens": {
+          "type": "number",
+          "description": "The total number of chickens present on the farm at the time of this record."
+        },
+        "recordedByUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who entered this production data. (Relationship: UserProfile 1:N ProductionRecord)"
+        }
+      },
+      "required": [
+        "id",
+        "recordDate",
+        "eggsProduced",
+        "mortalityCount",
+        "totalChickens",
+        "recordedByUserId"
+      ]
+    },
+    "ProfitDistribution": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProfitDistribution",
+      "type": "object",
+      "description": "Records the distribution of profits to individual investors or the decision to reinvest profits.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ProfitDistribution entity."
+        },
+        "investorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile (INVESTOR role) who is receiving or reinvesting this profit share. (Relationship: UserProfile 1:N ProfitDistribution)"
+        },
+        "distributionDate": {
+          "type": "string",
+          "description": "The date and time when this profit distribution was recorded.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary amount distributed or earmarked for reinvestment for this investor."
+        },
+        "isReinvested": {
+          "type": "boolean",
+          "description": "Indicates if this amount was reinvested into the farm activity (true) or paid out (false)."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes regarding this profit distribution."
+        },
+        "recordedByUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who recorded this profit distribution. (Relationship: UserProfile 1:N ProfitDistribution)"
+        }
+      },
+      "required": [
+        "id",
+        "investorId",
+        "distributionDate",
+        "amount",
+        "isReinvested",
+        "recordedByUserId"
+      ]
+    },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "Tracks significant actions performed within the application for transparency and auditing purposes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ActivityLog entity."
+        },
+        "actionType": {
+          "type": "string",
+          "description": "The type of action performed (e.g., 'CREATE_INVESTMENT', 'UPDATE_TRANSACTION', 'DELETE_USER', 'RECORD_PRODUCTION')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the action, including changes if applicable."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who performed the action. (Relationship: UserProfile 1:N ActivityLog)"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the action was performed.",
+          "format": "date-time"
+        },
+        "relatedEntityId": {
+          "type": "string",
+          "description": "Optional: The ID of the entity affected by this action."
+        },
+        "relatedEntityType": {
+          "type": "string",
+          "description": "Optional: The type of the entity affected (e.g., 'Investment', 'Transaction', 'UserProfile')."
+        }
+      },
+      "required": [
+        "id",
+        "actionType",
+        "description",
+        "userId",
+        "timestamp"
+      ]
+    },
+    "FarmAsset": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FarmAsset",
+      "type": "object",
+      "description": "Represents a fixed asset of the farm, such as land and buildings, which is separate from the operational activity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FarmAsset entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the farm asset (e.g., 'Land', 'Poultry House 1')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the farm asset."
+        },
+        "initialValue": {
+          "type": "number",
+          "description": "The initial monetary value of the farm asset when acquired."
+        },
+        "acquisitionDate": {
+          "type": "string",
+          "description": "The date and time when the farm asset was acquired.",
+          "format": "date-time"
+        },
+        "currentValue": {
+          "type": "number",
+          "description": "The estimated current monetary value of the farm asset, potentially adjusted for depreciation or appreciation."
+        },
+        "isOperationalAsset": {
+          "type": "boolean",
+          "description": "Indicates if this asset is directly used in farm operations (e.g., poultry house) or is a passive asset (e.g., land for future expansion)."
+        },
+        "recordedByUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who recorded or last updated this farm asset. (Relationship: UserProfile 1:N FarmAsset)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "initialValue",
+        "acquisitionDate",
+        "currentValue",
+        "recordedByUserId"
+      ]
+    },
+    "FarmAssetOwnership": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FarmAssetOwnership",
+      "type": "object",
+      "description": "Defines the ownership stake of a user in a specific farm asset, including their percentage of property.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FarmAssetOwnership entity."
+        },
+        "farmAssetId": {
+          "type": "string",
+          "description": "Reference to the FarmAsset being owned. (Relationship: FarmAsset 1:N FarmAssetOwnership)"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who is an owner of this asset. (Relationship: UserProfile 1:N FarmAssetOwnership)"
+        },
+        "ownershipPercentage": {
+          "type": "number",
+          "description": "The percentage of ownership this user holds in the specific farm asset (e.g., 25.5)."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The date and time when this ownership stake became effective.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "Optional: The date and time when this ownership stake ceased or changed.",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes regarding this specific ownership record."
+        },
+        "recordedByUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who recorded or last updated this ownership record. (Relationship: UserProfile 1:N FarmAssetOwnership)"
+        }
+      },
+      "required": [
+        "id",
+        "farmAssetId",
+        "ownerId",
+        "ownershipPercentage",
+        "startDate",
+        "recordedByUserId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profiles. Includes the 'role' field which is fetched via `get()` for global role-based access control checks.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, corresponding to Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "investments/{investmentId}",
+        "definition": {
+          "entityName": "Investment",
+          "schema": {
+            "$ref": "#/backend/entities/Investment"
+          },
+          "description": "Records investments made by investors into the farm activity. Includes 'investorId' for direct authorization for investors to view their own investments, and 'recordedByUserId' for audit.",
+          "params": [
+            {
+              "name": "investmentId",
+              "description": "The unique identifier for an investment record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Records all financial income and expense transactions for the farm. Includes 'recordedByUserId' for audit and manager-specific write permissions.",
+          "params": [
+            {
+              "name": "transactionId",
+              "description": "The unique identifier for a financial transaction record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "productionRecords/{recordId}",
+        "definition": {
+          "entityName": "ProductionRecord",
+          "schema": {
+            "$ref": "#/backend/entities/ProductionRecord"
+          },
+          "description": "Stores daily production data for the farm, such as egg count and mortality. Includes 'recordedByUserId' for audit and employee-specific write permissions.",
+          "params": [
+            {
+              "name": "recordId",
+              "description": "The unique identifier for a daily production record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "profitDistributions/{distributionId}",
+        "definition": {
+          "entityName": "ProfitDistribution",
+          "schema": {
+            "$ref": "#/backend/entities/ProfitDistribution"
+          },
+          "description": "Records the distribution of profits to individual investors or reinvestment decisions. Includes 'investorId' for direct authorization for investors to view their own profit share, and 'recordedByUserId' for audit.",
+          "params": [
+            {
+              "name": "distributionId",
+              "description": "The unique identifier for a profit distribution record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "activityLogs/{logId}",
+        "definition": {
+          "entityName": "ActivityLog",
+          "schema": {
+            "$ref": "#/backend/entities/ActivityLog"
+          },
+          "description": "Provides an immutable audit trail of significant actions performed within the application for transparency and security. Includes 'userId' of the actor.",
+          "params": [
+            {
+              "name": "logId",
+              "description": "The unique identifier for an activity log entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "farmAssets/{assetId}",
+        "definition": {
+          "entityName": "FarmAsset",
+          "schema": {
+            "$ref": "#/backend/entities/FarmAsset"
+          },
+          "description": "Manages records of fixed farm assets like land and buildings. Includes 'recordedByUserId' for audit.",
+          "params": [
+            {
+              "name": "assetId",
+              "description": "The unique identifier for a farm asset."
+            }
+          ]
+        }
+      },
+      {
+        "path": "farmAssets/{assetId}/ownerships/{ownershipId}",
+        "definition": {
+          "entityName": "FarmAssetOwnership",
+          "schema": {
+            "$ref": "#/backend/entities/FarmAssetOwnership"
+          },
+          "description": "Defines the ownership stake of a user in a specific farm asset. Nested under 'farmAssets' for clear semantic linkage. Includes 'ownerId' for investor-specific read authorization and 'recordedByUserId' for audit.",
+          "params": [
+            {
+              "name": "assetId",
+              "description": "The unique identifier of the parent farm asset."
+            },
+            {
+              "name": "ownershipId",
+              "description": "The unique identifier for an ownership record within a specific farm asset."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure for AgriShare prioritizes secure, scalable, and debuggable authorization by strictly adhering to the core design principles. \n\n**Authorization Independence via Denormalization:**\nEach document crucial for authorization (e.g., Investment, ProfitDistribution, FarmAssetOwnership) directly includes the `investorId` or `ownerId` field. This denormalization eliminates the need for `get()` calls in security rules to traverse parent collections or related user profiles to determine access to a specific record. For example, an investor's ability to view their specific investments or profit distributions will be directly checked against `request.auth.uid == resource.data.investorId` without needing to fetch a parent user document. Similarly, `recordedByUserId` in Transaction, ProductionRecord, and ActivityLog documents ensures that write access can be granted based on the user's role and their specific action, maintaining an audit trail.\n\nThe only `get()` operation for authorization will be to fetch the user's own profile (`/users/{userId}`) to determine their global role (e.g., ADMIN, MANAGER, EMPLOYEE, INVESTOR). This is a self-referential check (`get(/users/$(request.auth.uid)).data.role`) and is not considered a hierarchical dependency on parent data in the context of avoiding transactional breaks or debugging complexity. It ensures DBAC without relying on custom claims.\n\n**QAPs (Rules are not Filters):**\nThe structure supports secure `list` operations by employing Structural Segregation and careful use of denormalized fields.\n\n1.  **Role-Based Read Access:** Collections like `transactions`, `productionRecords`, `activityLogs`, and `farmAssets` are structured for broad read access for relevant roles (e.g., INVESTORs can read all transactions for transparency). Security rules will ensure that only authorized roles can `list` and `get` these collections. For example, an INVESTOR can list all `transactions`, but only a MANAGER or ADMIN can create or update them.\n2.  **User-Specific Filterable Collections:** For collections where users should only see their own data, such as `investments` and `profitDistributions` for `INVESTOR`s, the `investorId` field is included in each document. Security rules will mandate that `list` requests from an INVESTOR must include a `where('investorId', '==', request.auth.uid)` clause. This ensures that the application client cannot request unauthorized data and the database only returns records explicitly owned by the requesting user, preventing security rule violations.\n3.  **Segregation of Data Posture:** All documents within a given collection share a homogeneous security posture. For instance, `transactions` are all general financial records with clear read/write access defined by roles. There are no mixed public/private records in the same collection. This simplifies security rules significantly.\n\n**Overall Structure:**\n*   `users/{userId}`: User profiles with their role for global authorization checks.\n*   `investments/{investmentId}`: Centralized investments, with `investorId` and `recordedByUserId` for specific investor views and audit trails.\n*   `transactions/{transactionId}`: All financial transactions, globally accessible for reading by investors, but restricted write access for managers/admins.\n*   `productionRecords/{recordId}`: Daily production data, writeable by employees, readable by all relevant roles.\n*   `profitDistributions/{distributionId}`: Profit records for individual investors, viewable only by the respective `investorId`.\n*   `activityLogs/{logId}`: An immutable audit log, readable for transparency by authorized personnel.\n*   `farmAssets/{assetId}`: Fixed farm assets, managed by admins, viewable by others.\n*   `farmAssets/{assetId}/ownerships/{ownershipId}`: Nested subcollection for detailed ownership of specific assets, allowing investors to see their stakes (`ownerId`).\n\nThis design leverages explicit field-based authorization (`investorId`, `ownerId`, `recordedByUserId`) to achieve robust QAPs and authorization independence, making security rules simpler to write, understand, and debug."
+  }
+}
