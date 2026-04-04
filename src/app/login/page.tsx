@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth, useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { Sprout, Mail, Lock, LogIn, UserPlus, Loader2 } from "lucide-react";
+import { Sprout, Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -28,21 +30,15 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  if (user && !isUserLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+
     if (!email || !password) {
       toast({
         variant: "destructive",
         title: "Champs requis",
-        description: "Veuillez remplir tous les champs.",
+        description: "Veuillez remplir l'e-mail et le mot de passe.",
       });
       return;
     }
@@ -59,20 +55,47 @@ export default function LoginPage() {
         await signInWithEmailAndPassword(auth, email, password);
         toast({
           title: "Connexion réussie",
-          description: "Ravi de vous revoir.",
+          description: "Content de vous revoir.",
         });
       }
-      // La redirection sera gérée par le useEffect
     } catch (error: any) {
-      let message = "Une erreur est survenue.";
-      if (error.code === 'auth/wrong-password') message = "Mot de passe incorrect.";
-      if (error.code === 'auth/user-not-found') message = "Utilisateur non trouvé.";
-      if (error.code === 'auth/email-already-in-use') message = "Cet e-mail est déjà utilisé.";
+      console.error("Auth error:", error);
+      let friendlyMessage = "Une erreur inattendue est survenue.";
       
+      switch (error.code) {
+        case 'auth/invalid-email':
+          friendlyMessage = "L'adresse e-mail n'est pas valide.";
+          break;
+        case 'auth/user-disabled':
+          friendlyMessage = "Ce compte a été désactivé.";
+          break;
+        case 'auth/user-not-found':
+          friendlyMessage = "Aucun compte trouvé avec cet e-mail. Veuillez vous inscrire.";
+          break;
+        case 'auth/wrong-password':
+          friendlyMessage = "Le mot de passe est incorrect.";
+          break;
+        case 'auth/email-already-in-use':
+          friendlyMessage = "Cet e-mail est déjà utilisé par un autre compte.";
+          break;
+        case 'auth/weak-password':
+          friendlyMessage = "Le mot de passe doit contenir au moins 6 caractères.";
+          break;
+        case 'auth/operation-not-allowed':
+          friendlyMessage = "La connexion par e-mail n'est pas activée dans la console Firebase.";
+          break;
+        case 'auth/popup-blocked':
+          friendlyMessage = "Le popup de connexion a été bloqué par votre navigateur.";
+          break;
+        default:
+          friendlyMessage = error.message || "Erreur d'authentification.";
+      }
+      
+      setErrorMessage(friendlyMessage);
       toast({
         variant: "destructive",
-        title: "Erreur d'authentification",
-        description: message,
+        title: "Erreur",
+        description: friendlyMessage,
       });
     } finally {
       setLoading(false);
@@ -80,6 +103,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    setErrorMessage(null);
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
@@ -88,6 +112,8 @@ export default function LoginPage() {
         title: "Connexion Google réussie",
       });
     } catch (error: any) {
+      console.error("Google Auth error:", error);
+      setErrorMessage(error.message);
       toast({
         variant: "destructive",
         title: "Erreur Google",
@@ -98,21 +124,40 @@ export default function LoginPage() {
     }
   };
 
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse">Chargement d'AgriShare...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container mx-auto px-4 py-20 flex justify-center items-center">
+      <main className="container mx-auto px-4 py-12 flex justify-center items-center">
         <Card className="w-full max-w-md shadow-xl border-primary/20">
           <CardHeader className="text-center space-y-1">
-            <div className="mx-auto bg-primary w-12 h-12 rounded-xl flex items-center justify-center mb-2">
+            <div className="mx-auto bg-primary w-12 h-12 rounded-xl flex items-center justify-center mb-2 shadow-lg shadow-primary/20">
               <Sprout className="text-white h-7 w-7" />
             </div>
             <CardTitle className="text-2xl font-bold text-primary">AgriShare</CardTitle>
             <CardDescription>
-              {isSignUp ? "Créez votre compte pour gérer vos fermes" : "Connectez-vous à votre espace gestion"}
+              {isSignUp ? "Créez votre compte investisseur" : "Accédez à votre espace gestion"}
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {errorMessage && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Erreur</AlertTitle>
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -126,6 +171,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
+                    required
                   />
                 </div>
               </div>
@@ -137,9 +183,11 @@ export default function LoginPage() {
                     id="password" 
                     type="password" 
                     className="pl-10"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
+                    required
                   />
                 </div>
               </div>
@@ -151,7 +199,7 @@ export default function LoginPage() {
                 ) : (
                   <LogIn className="mr-2 h-4 w-4" />
                 )}
-                {isSignUp ? "S'inscrire" : "Se connecter"}
+                {isSignUp ? "Créer mon compte" : "Se connecter"}
               </Button>
             </form>
 
@@ -160,7 +208,7 @@ export default function LoginPage() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Ou continuer avec</span>
+                <span className="bg-background px-2 text-muted-foreground">Ou</span>
               </div>
             </div>
 
@@ -183,12 +231,12 @@ export default function LoginPage() {
                   fill="#EA4335"
                 />
               </svg>
-              Google
+              Continuer avec Google
             </Button>
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <Button variant="link" onClick={() => setIsSignUp(!isSignUp)} className="text-primary text-xs" disabled={loading}>
-              {isSignUp ? "Déjà un compte ? Se connecter" : "Pas de compte ? Créer un compte"}
+          <CardFooter className="flex justify-center border-t pt-4">
+            <Button variant="link" onClick={() => { setIsSignUp(!isSignUp); setErrorMessage(null); }} className="text-primary text-sm" disabled={loading}>
+              {isSignUp ? "Vous avez déjà un compte ? Se connecter" : "Nouveau sur AgriShare ? Créer un compte"}
             </Button>
           </CardFooter>
         </Card>
