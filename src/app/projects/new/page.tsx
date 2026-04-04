@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -59,6 +60,11 @@ export default function NewProjectPage() {
       setStep(3);
     } catch (error) {
       console.error("Simulation failed", error);
+      toast({
+        variant: "destructive",
+        title: "Échec de la simulation",
+        description: "Une erreur est survenue lors de l'analyse IA.",
+      });
     } finally {
       setLoading(false);
     }
@@ -79,7 +85,17 @@ export default function NewProjectPage() {
   };
 
   const handleInitializeProject = () => {
-    if (!user || !db) return;
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour créer un projet.",
+      });
+      router.push("/login");
+      return;
+    }
+
+    if (!db) return;
     setLoading(true);
 
     const projectRef = doc(collection(db, "projects"));
@@ -115,10 +131,13 @@ export default function NewProjectPage() {
 
     toast({
       title: "Projet Initialisé !",
-      description: `Le projet ${formData.projectName} a été créé avec succès.`,
+      description: `Le projet "${formData.projectName}" a été créé avec succès.`,
     });
 
-    router.push("/");
+    // We use a small timeout to allow Firestore local cache to update before redirecting
+    setTimeout(() => {
+      router.push("/");
+    }, 1000);
   };
 
   return (
@@ -311,7 +330,7 @@ export default function NewProjectPage() {
                   <Button variant="outline" onClick={() => setStep(2)} className="flex-1">Ajuster mes moyens</Button>
                   {simulation.isFeasible && (
                     <Button onClick={() => setStep(4)} className="flex-1 bg-primary">
-                      Ouvrir mon Projet
+                      Continuer
                     </Button>
                   )}
                 </div>
@@ -339,7 +358,7 @@ export default function NewProjectPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label>Liste des Investisseurs</Label>
-                  <Button variant="ghost" size="sm" onClick={addInvestor} className="text-primary h-8 px-2">
+                  <Button variant="ghost" type="button" size="sm" onClick={addInvestor} className="text-primary h-8 px-2">
                     <Plus className="h-4 w-4 mr-1" /> Ajouter
                   </Button>
                 </div>
