@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -10,7 +11,9 @@ import {
   PiggyBank, 
   UserCircle,
   Menu,
-  X
+  X,
+  PlusCircle,
+  Sprout
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -33,12 +36,12 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="rounded-lg bg-primary p-1.5">
-              <PiggyBank className="h-6 w-6 text-primary-foreground" />
+              <Sprout className="h-6 w-6 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold tracking-tight text-primary">AgriShare</span>
-          </div>
+          </Link>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex md:items-center md:gap-4">
@@ -60,10 +63,21 @@ export function Navbar() {
                 </Link>
               );
             })}
+            <Link href="/projects/new">
+              <Button size="sm" className="bg-primary ml-2">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Nouveau Projet
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center gap-2">
+            <Link href="/projects/new">
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                <PlusCircle className="h-4 w-4 text-primary" />
+              </Button>
+            </Link>
             <Button
               variant="ghost"
               size="icon"

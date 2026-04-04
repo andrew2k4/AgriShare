@@ -1,3 +1,4 @@
+
 import { StatCards } from "@/components/dashboard/StatCards";
 import { ProductionChart } from "@/components/dashboard/ProductionChart";
 import { AdvisorPanel } from "@/components/ai/AdvisorPanel";
@@ -7,10 +8,12 @@ import {
   ArrowDownRight, 
   History,
   TrendingUp,
-  Package
+  Package,
+  Layers
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MOCK_TRANSACTIONS } from "@/lib/mock-data";
+import { Badge } from "@/components/ui/badge";
 
 export default function Home() {
   const recentTransactions = MOCK_TRANSACTIONS.slice(0, 5);
@@ -19,9 +22,16 @@ export default function Home() {
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
-        <header className="mb-8 flex flex-col gap-2">
-          <h1 className="text-3xl font-bold text-primary">Tableau de Bord</h1>
-          <p className="text-muted-foreground">Bienvenue sur AgriShare. Voici l'état actuel de la ferme.</p>
+        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold text-primary">Tableau de Bord</h1>
+            <p className="text-muted-foreground">Bienvenue sur AgriShare. Gérer vos projets agro-pastoraux.</p>
+          </div>
+          <div className="flex items-center gap-2 bg-white p-2 rounded-lg border">
+            <Layers className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Projet Actuel:</span>
+            <Badge variant="outline" className="bg-primary/5 text-primary">Ferme Poules Ndongo</Badge>
+          </div>
         </header>
 
         <section className="space-y-8">
