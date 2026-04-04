@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -25,7 +24,7 @@ interface InitialInvestor {
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const { db } = useFirestore() as any;
+  const db = useFirestore();
   const { user } = useUser();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
