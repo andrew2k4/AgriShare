@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,13 +10,27 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { simulateProject, type ProjectSimulationOutput } from "@/ai/flows/project-simulator";
-import { Sparkles, ArrowRight, CheckCircle2, AlertCircle, TrendingUp, Info } from "lucide-react";
+import { Sparkles, ArrowRight, CheckCircle2, AlertCircle, TrendingUp, Info, Plus, Trash2, Save } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useFirestore, useUser } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { addDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useRouter } from "next/navigation";
+import { toast } from "@/hooks/use-toast";
+
+interface InitialInvestor {
+  name: string;
+  amount: string;
+}
 
 export default function NewProjectPage() {
+  const router = useRouter();
+  const { db } = useFirestore() as any;
+  const { user } = useUser();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    projectName: "",
     domain: "",
     type: "",
     budget: "",
@@ -25,6 +39,11 @@ export default function NewProjectPage() {
     description: "",
   });
   const [simulation, setSimulation] = useState<ProjectSimulationOutput | null>(null);
+  const [investors, setInvestors] = useState<InitialInvestor[]>([{ name: "", amount: "" }]);
+
+  const totalInitialCapital = useMemo(() => {
+    return investors.reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+  }, [investors]);
 
   const handleSimulate = async () => {
     setLoading(true);
@@ -46,6 +65,63 @@ export default function NewProjectPage() {
     }
   };
 
+  const addInvestor = () => setInvestors([...investors, { name: "", amount: "" }]);
+  
+  const removeInvestor = (index: number) => {
+    if (investors.length > 1) {
+      setInvestors(investors.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateInvestor = (index: number, field: keyof InitialInvestor, value: string) => {
+    const newInvestors = [...investors];
+    newInvestors[index][field] = value;
+    setInvestors(newInvestors);
+  };
+
+  const handleInitializeProject = () => {
+    if (!user || !db) return;
+    setLoading(true);
+
+    const projectRef = doc(collection(db, "projects"));
+    const projectId = projectRef.id;
+
+    // Create Project Document
+    setDocumentNonBlocking(projectRef, {
+      id: projectId,
+      name: formData.projectName,
+      domain: formData.domain,
+      type: formData.type,
+      status: "ACTIVE",
+      resources: {
+        budget: Number(formData.budget),
+        landSize: Number(formData.landSize),
+        hasStructures: formData.hasStructures,
+        description: formData.description,
+      },
+      createdBy: user.uid,
+      createdAt: new Date().toISOString(),
+    }, { merge: true });
+
+    // Create Initial Investments
+    investors.forEach((inv) => {
+      const invRef = collection(db, "projects", projectId, "investments");
+      addDocumentNonBlocking(invRef, {
+        projectId,
+        investorName: inv.name,
+        amount: Number(inv.amount),
+        date: new Date().toISOString(),
+      });
+    });
+
+    toast({
+      title: "Projet Initialisé !",
+      description: `Le projet ${formData.projectName} a été créé avec succès.`,
+    });
+
+    router.push("/");
+  };
+
   return (
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
@@ -54,7 +130,7 @@ export default function NewProjectPage() {
           <h1 className="text-3xl font-bold text-primary">Nouveau Projet AgriShare</h1>
           <p className="text-muted-foreground mt-2">Initialisez votre activité avec une simulation IA complète.</p>
           <div className="mt-6 flex justify-center">
-            <Progress value={(step / 3) * 100} className="w-64 h-2" />
+            <Progress value={(step / 4) * 100} className="w-64 h-2" />
           </div>
         </header>
 
@@ -230,24 +306,12 @@ export default function NewProjectPage() {
                       ))}
                     </ul>
                   </div>
-
-                  {!simulation.isFeasible && simulation.alternativeProposal && (
-                    <div className="p-4 rounded-lg bg-accent/20 border border-accent/50 space-y-2">
-                      <h4 className="text-sm font-bold text-accent-foreground flex items-center gap-2">
-                        <Sparkles className="h-4 w-4" />
-                        Proposition Alternative
-                      </h4>
-                      <p className="text-sm">
-                        <strong>{simulation.alternativeProposal.suggestedType} :</strong> {simulation.alternativeProposal.reason}
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex gap-4 pt-4">
                   <Button variant="outline" onClick={() => setStep(2)} className="flex-1">Ajuster mes moyens</Button>
                   {simulation.isFeasible && (
-                    <Button className="flex-1 bg-primary">
+                    <Button onClick={() => setStep(4)} className="flex-1 bg-primary">
                       Ouvrir mon Projet
                     </Button>
                   )}
@@ -255,6 +319,83 @@ export default function NewProjectPage() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {step === 4 && (
+          <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <CardHeader>
+              <CardTitle>Configuration du Capital</CardTitle>
+              <CardDescription>Nommez votre projet et ajoutez vos partenaires.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Nom du Projet</Label>
+                <Input 
+                  placeholder="Ex: Ferme Avicole du Sud" 
+                  value={formData.projectName}
+                  onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Liste des Investisseurs</Label>
+                  <Button variant="ghost" size="sm" onClick={addInvestor} className="text-primary h-8 px-2">
+                    <Plus className="h-4 w-4 mr-1" /> Ajouter
+                  </Button>
+                </div>
+                
+                {investors.map((inv, idx) => (
+                  <div key={idx} className="flex gap-2 items-end animate-in fade-in slide-in-from-right-2">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Nom complet</Label>
+                      <Input 
+                        placeholder="Nom" 
+                        value={inv.name}
+                        onChange={(e) => updateInvestor(idx, "name", e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Apport (FCFA)</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="Montant" 
+                        value={inv.amount}
+                        onChange={(e) => updateInvestor(idx, "amount", e.target.value)}
+                      />
+                    </div>
+                    {investors.length > 1 && (
+                      <Button variant="ghost" size="icon" onClick={() => removeInvestor(idx)} className="text-destructive h-10 w-10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-medium">Capital Total Initial :</span>
+                    <span className="font-bold text-primary">{totalInitialCapital.toLocaleString()} FCFA</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Les parts de chacun seront calculées automatiquement sur cette base.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Button variant="outline" onClick={() => setStep(3)} className="flex-1">Retour Simulation</Button>
+                <Button 
+                  disabled={!formData.projectName || totalInitialCapital === 0 || loading} 
+                  onClick={handleInitializeProject} 
+                  className="flex-1 bg-primary"
+                >
+                  {loading ? "Initialisation..." : "Créer le Projet"}
+                  <Save className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </main>
     </div>
