@@ -1,17 +1,17 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth, useUser, initiateEmailSignIn, initiateEmailSignUp } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { Sprout, Mail, Lock, LogIn, UserPlus } from "lucide-react";
+import { Sprout, Mail, Lock, LogIn, UserPlus, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
@@ -20,13 +20,23 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      router.push("/");
+    }
+  }, [user, isUserLoading, router]);
 
   if (user && !isUserLoading) {
-    router.push("/");
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast({
@@ -37,32 +47,54 @@ export default function LoginPage() {
       return;
     }
 
-    if (isSignUp) {
-      initiateEmailSignUp(auth, email, password);
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        await createUserWithEmailAndPassword(auth, email, password);
+        toast({
+          title: "Compte créé",
+          description: "Bienvenue sur AgriShare !",
+        });
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({
+          title: "Connexion réussie",
+          description: "Ravi de vous revoir.",
+        });
+      }
+      // La redirection sera gérée par le useEffect
+    } catch (error: any) {
+      let message = "Une erreur est survenue.";
+      if (error.code === 'auth/wrong-password') message = "Mot de passe incorrect.";
+      if (error.code === 'auth/user-not-found') message = "Utilisateur non trouvé.";
+      if (error.code === 'auth/email-already-in-use') message = "Cet e-mail est déjà utilisé.";
+      
       toast({
-        title: "Inscription lancée",
-        description: "Vérifiez vos e-mails pour la confirmation.",
+        variant: "destructive",
+        title: "Erreur d'authentification",
+        description: message,
       });
-    } else {
-      initiateEmailSignIn(auth, email, password);
-      toast({
-        title: "Tentative de connexion",
-        description: "Connexion en cours...",
-      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      router.push("/");
+      toast({
+        title: "Connexion Google réussie",
+      });
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erreur Google",
         description: error.message,
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -93,6 +125,7 @@ export default function LoginPage() {
                     className="pl-10"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -106,11 +139,18 @@ export default function LoginPage() {
                     className="pl-10"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-primary mt-2">
-                {isSignUp ? <UserPlus className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}
+              <Button type="submit" className="w-full bg-primary mt-2" disabled={loading}>
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : isSignUp ? (
+                  <UserPlus className="mr-2 h-4 w-4" />
+                ) : (
+                  <LogIn className="mr-2 h-4 w-4" />
+                )}
                 {isSignUp ? "S'inscrire" : "Se connecter"}
               </Button>
             </form>
@@ -124,7 +164,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={loading}>
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -147,7 +187,7 @@ export default function LoginPage() {
             </Button>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button variant="link" onClick={() => setIsSignUp(!isSignUp)} className="text-primary text-xs">
+            <Button variant="link" onClick={() => setIsSignUp(!isSignUp)} className="text-primary text-xs" disabled={loading}>
               {isSignUp ? "Déjà un compte ? Se connecter" : "Pas de compte ? Créer un compte"}
             </Button>
           </CardFooter>
