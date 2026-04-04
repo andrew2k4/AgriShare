@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -63,6 +62,9 @@ export default function LoginPage() {
       let friendlyMessage = "Une erreur inattendue est survenue.";
       
       switch (error.code) {
+        case 'auth/invalid-credential':
+          friendlyMessage = "Identifiants invalides. Vérifiez votre e-mail/mot de passe ou créez un compte si vous n'en avez pas encore.";
+          break;
         case 'auth/invalid-email':
           friendlyMessage = "L'adresse e-mail n'est pas valide.";
           break;
@@ -83,9 +85,6 @@ export default function LoginPage() {
           break;
         case 'auth/operation-not-allowed':
           friendlyMessage = "La connexion par e-mail n'est pas activée dans la console Firebase.";
-          break;
-        case 'auth/popup-blocked':
-          friendlyMessage = "Le popup de connexion a été bloqué par votre navigateur.";
           break;
         default:
           friendlyMessage = error.message || "Erreur d'authentification.";
