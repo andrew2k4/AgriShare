@@ -5,26 +5,12 @@ service cloud.firestore {
     /**
      * AgriShare Security Rules
      * 
-     * Core Philosophy:
-     * This ruleset implements a multi-tier role-based access control (RBAC) model designed for 
-     * agricultural transparency. It prioritizes the "Investor" transparency while restricting 
-     * financial and structural modifications to "Admin" and "Manager" roles.
-     * 
-     * Data Structure:
-     * - /users: Profiles containing global roles (ADMIN, INVESTOR, MANAGER, EMPLOYEE).
-     * - /investments, /profitDistributions: Restricted to Admins and the specific Investor.
-     * - /transactions, /productionRecords: Operational data readable by all for transparency.
-     * - /farmAssets: Fixed assets managed by Admins, viewable by all.
-     * - /activityLogs: Immutable audit trail of system actions.
-     * 
-     * Key Security Decisions:
-     * 1. DBAC (Document-Based Access Control): Roles are stored in the user's document.
-     * 2. Denormalization: Fields like 'investorId', 'ownerId', and 'recordedByUserId' are 
-     *    required on documents to allow fast, non-recursive authorization checks.
-     * 3. Immutability: Audit logs and certain relational fields (like investorId) are 
-     *    protected from modification once created.
-     * 4. Transparency: Investors have read-only access to global financial and production 
-     *    summaries to ensure trust in the "AgriShare" model.
+     * Hierarchical structure:
+     * - /projects/{projectId}
+     *   - /investments
+     *   - /transactions
+     *   - /productionRecords
+     * - /users/{userId}
      */
 
     // --- HELPER FUNCTIONS ---
@@ -34,7 +20,6 @@ service cloud.firestore {
     }
 
     function getRole() {
-      // Safely check if the user document exists before trying to access its data.
       let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
       return userDoc.exists ? userDoc.data.role : null;
     }
@@ -55,142 +40,75 @@ service cloud.firestore {
       return hasRole('EMPLOYEE');
     }
 
-    // `isInvestor` function was unused and has been removed.
-
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // `isExistingOwner` function was unused and has been removed.
-
-    // Fixed `isFieldImmutable` to accept `existingData` (resource.data) and `newData` (request.resource.data)
-    // as explicit arguments, resolving "Invalid variable name: resource/request" warnings.
     function isFieldImmutable(field, existingData, newData) {
-      // The field is considered immutable if it's not present in the new data (not being updated),
-      // OR if its value in the new data is the same as its value in the existing data.
       return !(field in newData) || newData[field] == existingData[field];
     }
 
     // --- COLLECTION RULES ---
 
     /**
-     * @description User profiles containing roles. Users can manage their own profile; Admins manage all.
-     * @path /users/{userId}
-     * @allow (get) If owner or Admin. (create) If setting own profile.
-     * @deny (list) If not an Admin.
-     * @principle Self-creation and Role-Based Access Control.
+     * @description User profiles containing roles.
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      // Updated call to `isFieldImmutable` with required arguments
       allow update: if (isOwner(userId) || isAdmin()) && isFieldImmutable('role', resource.data, request.resource.data);
       allow delete: if isAdmin();
     }
 
     /**
-     * @description Financial investments. Investors see their own; Admins manage all.
-     * @path /investments/{investmentId}
-     * @allow (get) If owner of investment or Admin/Manager.
-     * @deny (create) If not an Admin.
-     * @principle Ownership-based read access with administrative write control.
+     * @description Main project container.
      */
-    match /investments/{investmentId} {
-      allow get: if isAdmin() || isManager() || (isSignedIn() && resource.data.investorId == request.auth.uid);
-      allow list: if isAdmin() || isManager() || (isSignedIn() && request.query.limit <= 100); 
-      allow create: if isAdmin() && request.resource.data.recordedByUserId == request.auth.uid;
-      // Updated call to `isFieldImmutable` with required arguments
-      allow update: if isAdmin() && resource != null && isFieldImmutable('investorId', resource.data, request.resource.data);
-      allow delete: if isAdmin() && resource != null;
+    match /projects/{projectId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn(); // Allow any signed-in user to initialize a project
+      allow update: if isAdmin() || isManager() || resource.data.createdBy == request.auth.uid;
+      allow delete: if isAdmin();
+
+      /**
+       * @description Investments linked to a specific project.
+       */
+      match /investments/{investmentId} {
+        allow get: if isAdmin() || isManager() || (isSignedIn() && resource.data.investorId == request.auth.uid);
+        allow list: if isSignedIn(); 
+        allow create: if (isAdmin() || isManager() || isSignedIn()); // Simplified for onboarding
+        allow update: if isAdmin() && isFieldImmutable('investorId', resource.data, request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      /**
+       * @description Project-specific financial ledger.
+       */
+      match /transactions/{transactionId} {
+        allow get, list: if isSignedIn();
+        allow create: if (isAdmin() || isManager()) && request.resource.data.recordedByUserId == request.auth.uid;
+        allow update: if (isAdmin() || isManager()) && isFieldImmutable('recordedByUserId', resource.data, request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      /**
+       * @description Daily production or harvest data.
+       */
+      match /productionRecords/{recordId} {
+        allow get, list: if isSignedIn();
+        allow create: if (isAdmin() || isManager() || isEmployee()) && request.resource.data.recordedByUserId == request.auth.uid;
+        allow update: if (isAdmin() || isManager() || isEmployee()) && isFieldImmutable('recordedByUserId', resource.data, request.resource.data);
+        allow delete: if isAdmin();
+      }
     }
 
     /**
-     * @description Income and Expense records. Fully transparent to all authenticated stakeholders.
-     * @path /transactions/{transactionId}
-     * @allow (read) All signed-in users. (write) Admin and Manager roles.
-     * @deny (write) Investor or Employee roles.
-     * @principle Role-based write access with global read transparency.
-     */
-    match /transactions/{transactionId} {
-      allow get, list: if isSignedIn();
-      allow create: if (isAdmin() || isManager()) && request.resource.data.recordedByUserId == request.auth.uid;
-      // Updated call to `isFieldImmutable` with required arguments
-      allow update: if (isAdmin() || isManager()) && resource != null && isFieldImmutable('recordedByUserId', resource.data, request.resource.data);
-      allow delete: if isAdmin() && resource != null;
-    }
-
-    /**
-     * @description Daily egg production and mortality records.
-     * @path /productionRecords/{recordId}
-     * @allow (read) All signed-in users. (write) Admin, Manager, and Employee.
-     * @deny (delete) Anyone except Admin.
-     * @principle Operations-focused write access for employees.
-     */
-    match /productionRecords/{recordId} {
-      allow get, list: if isSignedIn();
-      allow create: if (isAdmin() || isManager() || isEmployee()) && request.resource.data.recordedByUserId == request.auth.uid;
-      // Updated call to `isFieldImmutable` with required arguments
-      allow update: if (isAdmin() || isManager() || isEmployee()) && resource != null && isFieldImmutable('recordedByUserId', resource.data, request.resource.data);
-      allow delete: if isAdmin() && resource != null;
-    }
-
-    /**
-     * @description Profit distribution records. Highly sensitive; restricted to Admin and the recipient Investor.
-     * @path /profitDistributions/{distributionId}
-     * @allow (get) If recipient or Admin.
-     * @deny (write) If not Admin.
-     * @principle Strict ownership for sensitive financial payouts.
-     */
-    match /profitDistributions/{distributionId} {
-      allow get: if isAdmin() || (isSignedIn() && resource.data.investorId == request.auth.uid);
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
-      allow create: if isAdmin() && request.resource.data.recordedByUserId == request.auth.uid;
-      // Updated call to `isFieldImmutable` with required arguments
-      allow update: if isAdmin() && resource != null && isFieldImmutable('investorId', resource.data, request.resource.data);
-      allow delete: if isAdmin() && resource != null;
-    }
-
-    /**
-     * @description Immutable audit logs for application transparency.
-     * @path /activityLogs/{logId}
-     * @allow (read) All signed-in users. (create) Any signed-in user.
-     * @deny (update, delete) Always denied to maintain log integrity.
-     * @principle Immutability for audit trails.
+     * @description Global Activity logs.
      */
     match /activityLogs/{logId} {
       allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false;
-    }
-
-    /**
-     * @description Fixed assets (Land, Buildings). Separate from operational activity.
-     * @path /farmAssets/{assetId}
-     * @allow (read) All signed-in users. (write) Admin only.
-     * @deny (write) Non-Admin roles.
-     * @principle Administrative control of capital assets.
-     */
-    match /farmAssets/{assetId} {
-      allow get, list: if isSignedIn();
-      allow create: if isAdmin() && request.resource.data.recordedByUserId == request.auth.uid;
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
-
-      /**
-       * @description Stakeholder ownership percentages in specific farm assets.
-       * @path /farmAssets/{assetId}/ownerships/{ownershipId}
-       * @allow (get) Recipient owner or Admin. (write) Admin only.
-       * @principle Hierarchical asset management with owner visibility.
-       */
-      match /ownerships/{ownershipId} {
-        allow get: if isAdmin() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
-        allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
-        allow create: if isAdmin() && request.resource.data.recordedByUserId == request.auth.uid;
-        // Updated call to `isFieldImmutable` with required arguments
-        allow update: if isAdmin() && resource != null && isFieldImmutable('ownerId', resource.data, request.resource.data);
-        allow delete: if isAdmin() && resource != null;
-      }
     }
   }
 }
