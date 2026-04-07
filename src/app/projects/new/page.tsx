@@ -10,7 +10,19 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { simulateProject, type ProjectSimulationOutput } from "@/ai/flows/project-simulator";
-import { Sparkles, ArrowRight, CheckCircle2, AlertCircle, TrendingUp, Info, Plus, Trash2, Save } from "lucide-react";
+import { 
+  Sparkles, 
+  ArrowRight, 
+  CheckCircle2, 
+  AlertCircle, 
+  TrendingUp, 
+  Info, 
+  Plus, 
+  Trash2, 
+  Save, 
+  RefreshCcw,
+  Stethoscope
+} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useFirestore, useUser } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
@@ -58,12 +70,16 @@ export default function NewProjectPage() {
       });
       setSimulation(result);
       setStep(3);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Simulation failed", error);
+      let message = "Une erreur est survenue lors de l'analyse IA.";
+      if (error.status === 'RESOURCE_EXHAUSTED' || error.code === 429) {
+        message = "Le service est temporairement surchargé. Veuillez patienter 20 secondes avant de réessayer.";
+      }
       toast({
         variant: "destructive",
         title: "Échec de la simulation",
-        description: "Une erreur est survenue lors de l'analyse IA.",
+        description: message,
       });
     } finally {
       setLoading(false);
@@ -134,10 +150,9 @@ export default function NewProjectPage() {
       description: `Le projet "${formData.projectName}" a été créé avec succès.`,
     });
 
-    // We use a small timeout to allow Firestore local cache to update before redirecting
     setTimeout(() => {
       router.push("/");
-    }, 1000);
+    }, 1500);
   };
 
   return (
@@ -264,8 +279,12 @@ export default function NewProjectPage() {
                   onClick={handleSimulate} 
                   className="flex-1 bg-primary"
                 >
+                  {loading ? (
+                    <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
                   {loading ? "Simulation..." : "Lancer la Simulation"}
-                  <Sparkles className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -290,16 +309,16 @@ export default function NewProjectPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="p-3 bg-white rounded-lg shadow-sm">
+                  <div className="p-3 bg-white rounded-lg shadow-sm border border-primary/10">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold">Investissement</p>
                     <p className="font-bold text-primary">{simulation.estimatedStartupCost.toLocaleString()} F</p>
                   </div>
-                  <div className="p-3 bg-white rounded-lg shadow-sm">
+                  <div className="p-3 bg-white rounded-lg shadow-sm border border-primary/10">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold">Revenu Mensuel</p>
                     <p className="font-bold text-accent-foreground">{simulation.estimatedMonthlyRevenue.toLocaleString()} F</p>
                   </div>
-                  <div className="p-3 bg-white rounded-lg shadow-sm">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Rentabilité (ROI)</p>
+                  <div className="p-3 bg-white rounded-lg shadow-sm border border-primary/10">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Rentabilité</p>
                     <p className="font-bold text-primary">{simulation.roiPeriodMonths} Mois</p>
                   </div>
                 </div>
@@ -310,19 +329,36 @@ export default function NewProjectPage() {
                     <p className="text-sm leading-relaxed italic">{simulation.feasibilityReport}</p>
                   </div>
 
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-bold flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-primary" />
-                      Conseils de l'expert
-                    </h4>
-                    <ul className="grid grid-cols-1 gap-2">
-                      {simulation.recommendations.map((rec, i) => (
-                        <li key={i} className="text-xs bg-white p-2 rounded border border-primary/10 flex items-start gap-2">
-                          <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1 shrink-0" />
-                          {rec}
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-bold flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        Conseils Stratégiques
+                      </h4>
+                      <ul className="grid grid-cols-1 gap-1">
+                        {simulation.recommendations.map((rec, i) => (
+                          <li key={i} className="text-[11px] bg-white p-2 rounded border border-primary/10 flex items-start gap-2">
+                            <div className="h-1 w-1 rounded-full bg-primary mt-1.5 shrink-0" />
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-bold flex items-center gap-2 text-accent-foreground">
+                        <Stethoscope className="h-4 w-4 text-accent" />
+                        Prescriptions Experts
+                      </h4>
+                      <ul className="grid grid-cols-1 gap-1">
+                        {simulation.vetPrescriptions.map((presc, i) => (
+                          <li key={i} className="text-[11px] bg-accent/5 p-2 rounded border border-accent/20 flex items-start gap-2">
+                            <div className="h-1 w-1 rounded-full bg-accent mt-1.5 shrink-0" />
+                            {presc}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
 
@@ -408,8 +444,12 @@ export default function NewProjectPage() {
                   onClick={handleInitializeProject} 
                   className="flex-1 bg-primary"
                 >
+                  {loading ? (
+                    <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
                   {loading ? "Initialisation..." : "Créer le Projet"}
-                  <Save className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </CardContent>

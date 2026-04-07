@@ -1,3 +1,4 @@
+
 export type Role = 'ADMIN' | 'INVESTOR' | 'MANAGER' | 'EMPLOYEE';
 
 export interface User {
@@ -5,6 +6,16 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+}
+
+export interface Veterinarian {
+  id: string;
+  name: string;
+  specialties: string[];
+  location: string;
+  phone: string;
+  verified: boolean;
+  experienceYears: number;
 }
 
 export interface Investment {
@@ -37,6 +48,13 @@ export const MOCK_USERS: User[] = [
   { id: '2', name: 'Marie Tchakoute', email: 'marie@invest.cm', role: 'INVESTOR' },
   { id: '3', name: 'Samuel Eto', email: 'sam@manager.cm', role: 'MANAGER' },
   { id: '4', name: 'Alioum Boukar', email: 'ali@farm.cm', role: 'EMPLOYEE' },
+];
+
+export const MOCK_VETERINARIANS: Veterinarian[] = [
+  { id: 'v1', name: 'Dr. Kamgaing Fotso', specialties: ['Aviculture', 'Porciculture'], location: 'Douala', phone: '+237 670 00 00 01', verified: true, experienceYears: 12 },
+  { id: 'v2', name: 'Dr. Tagne Dieudonné', specialties: ['Bovins', 'Petits Ruminants'], location: 'Bafoussam', phone: '+237 690 00 00 02', verified: true, experienceYears: 8 },
+  { id: 'v3', name: 'Dr. Bella Christine', specialties: ['Aviculture', 'Lapins'], location: 'Yaoundé', phone: '+237 650 00 00 03', verified: true, experienceYears: 15 },
+  { id: 'v4', name: 'Dr. Mvondo Jacques', specialties: ['Santé Animale Globale'], location: 'Ebolowa', phone: '+237 660 00 00 04', verified: true, experienceYears: 5 },
 ];
 
 export const MOCK_INVESTMENTS: Investment[] = [

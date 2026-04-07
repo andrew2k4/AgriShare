@@ -3,6 +3,7 @@
 /**
  * @fileOverview A project simulation AI agent for AgriShare.
  * Analyzes resources and domain type to estimate feasibility and profitability.
+ * Includes expert veterinarian/specialist prescriptions.
  */
 
 import { ai } from '@/ai/genkit';
@@ -25,6 +26,7 @@ const ProjectSimulationOutputSchema = z.object({
   roiPeriodMonths: z.number().describe('Estimated months to break even.'),
   feasibilityReport: z.string().describe('Detailed explanation of the analysis.'),
   recommendations: z.array(z.string()).describe('List of actionable advice.'),
+  vetPrescriptions: z.array(z.string()).describe('Specific veterinarian or agricultural specialist advice needed for this project.'),
   alternativeProposal: z.object({
     suggestedType: z.string().optional(),
     reason: z.string().optional(),
@@ -51,9 +53,10 @@ User Resources:
 
 Task:
 1. Calculate estimated startup costs for this type of project in the Cameroonian market.
-2. Estimate monthly revenue based on standard yields (e.g., for poultry, consider egg laying rates; for corn, consider seasonal harvest).
-3. Determine feasibility. If the budget or land is too small, mark as not feasible and propose a better alternative (e.g., if Poultry is too expensive, suggest Rabbits).
+2. Estimate monthly revenue based on standard yields.
+3. Determine feasibility. If the budget or land is too small, mark as not feasible and propose a better alternative.
 4. Provide clear recommendations for success.
+5. Provide specific Veterinarian (for Livestock) or Agronomist (for Agriculture) prescriptions or essential health checks needed to start.
 
 Focus on transparency and accuracy for investors. Use FCFA for all financial calculations.`,
 });

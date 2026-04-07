@@ -38,6 +38,21 @@
       },
       "required": ["id", "name", "email", "role"]
     },
+    "Veterinarian": {
+      "title": "Veterinarian",
+      "type": "object",
+      "description": "Verified veterinarian profile.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "specialties": { "type": "array", "items": { "type": "string" } },
+        "location": { "type": "string" },
+        "phone": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "experienceYears": { "type": "number" }
+      },
+      "required": ["id", "name", "specialties", "location", "verified"]
+    },
     "Investment": {
       "title": "Investment",
       "type": "object",
@@ -73,7 +88,7 @@
         "date": { "type": "string", "format": "date-time" },
         "metrics": {
           "type": "object",
-          "description": "Dynamic metrics based on project type (e.g., eggsProduced, mortality, harvestWeight)"
+          "description": "Dynamic metrics based on project type"
         },
         "recordedBy": { "type": "string" }
       },
@@ -91,6 +106,10 @@
     "users/{userId}": {
       "schema": { "$ref": "#/backend/entities/UserProfile" },
       "description": "Global user profiles."
+    },
+    "veterinarians/{vetId}": {
+      "schema": { "$ref": "#/backend/entities/Veterinarian" },
+      "description": "Database of verified veterinarians."
     },
     "projects/{projectId}/investments/{investmentId}": {
       "schema": { "$ref": "#/backend/entities/Investment" },

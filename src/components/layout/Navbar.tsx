@@ -15,7 +15,8 @@ import {
   PlusCircle,
   Sprout,
   LogIn,
-  LogOut
+  LogOut,
+  Stethoscope
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -28,6 +29,7 @@ const navItems = [
   { name: "Investissements", href: "/investments", icon: Wallet },
   { name: "Comptabilité", href: "/accounting", icon: ReceiptText },
   { name: "Production", href: "/production", icon: Activity },
+  { name: "Vétérinaires", href: "/veterinarians", icon: Stethoscope },
   { name: "Bénéfices", href: "/profits", icon: PiggyBank },
 ];
 
