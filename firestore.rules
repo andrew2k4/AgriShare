@@ -1,19 +1,7 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * AgriShare Security Rules
-     * 
-     * Hierarchical structure:
-     * - /projects/{projectId}
-     *   - /investments
-     *   - /transactions
-     *   - /productionRecords
-     * - /users/{userId}
-     */
-
-    // --- HELPER FUNCTIONS ---
 
     function isSignedIn() {
       return request.auth != null;
@@ -24,91 +12,54 @@ service cloud.firestore {
       return userDoc.exists ? userDoc.data.role : null;
     }
 
-    function hasRole(role) {
-      return isSignedIn() && getRole() == role;
-    }
-
-    function isAdmin() {
-      return hasRole('ADMIN');
-    }
-
-    function isManager() {
-      return hasRole('MANAGER');
-    }
-
-    function isEmployee() {
-      return hasRole('EMPLOYEE');
-    }
-
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isFieldImmutable(field, existingData, newData) {
-      return !(field in newData) || newData[field] == existingData[field];
+    function isAdmin() {
+      return isSignedIn() && getRole() == 'ADMIN';
     }
 
-    // --- COLLECTION RULES ---
+    function isVetForProject(projectId) {
+      let projectData = get(/databases/$(database)/documents/projects/$(projectId)).data;
+      return isSignedIn() && (projectData.assignedVetId == request.auth.uid || getRole() == 'VETERINARIAN');
+    }
 
-    /**
-     * @description User profiles containing roles.
-     */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if (isOwner(userId) || isAdmin()) && isFieldImmutable('role', resource.data, request.resource.data);
-      allow delete: if isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
     }
 
-    /**
-     * @description Main project container.
-     */
     match /projects/{projectId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn(); // Allow any signed-in user to initialize a project
-      allow update: if isAdmin() || isManager() || resource.data.createdBy == request.auth.uid;
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || resource.data.createdBy == request.auth.uid;
       allow delete: if isAdmin();
 
-      /**
-       * @description Investments linked to a specific project.
-       */
       match /investments/{investmentId} {
-        allow get: if isAdmin() || isManager() || (isSignedIn() && resource.data.investorId == request.auth.uid);
-        allow list: if isSignedIn(); 
-        allow create: if (isAdmin() || isManager() || isSignedIn()); // Simplified for onboarding
-        allow update: if isAdmin() && isFieldImmutable('investorId', resource.data, request.resource.data);
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
         allow delete: if isAdmin();
       }
 
-      /**
-       * @description Project-specific financial ledger.
-       */
       match /transactions/{transactionId} {
-        allow get, list: if isSignedIn();
-        allow create: if (isAdmin() || isManager()) && request.resource.data.recordedByUserId == request.auth.uid;
-        allow update: if (isAdmin() || isManager()) && isFieldImmutable('recordedByUserId', resource.data, request.resource.data);
+        allow read: if isSignedIn() || isVetForProject(projectId);
+        allow create, update: if isAdmin() || isOwner(resource.data.recordedByUserId);
         allow delete: if isAdmin();
       }
 
-      /**
-       * @description Daily production or harvest data.
-       */
       match /productionRecords/{recordId} {
-        allow get, list: if isSignedIn();
-        allow create: if (isAdmin() || isManager() || isEmployee()) && request.resource.data.recordedByUserId == request.auth.uid;
-        allow update: if (isAdmin() || isManager() || isEmployee()) && isFieldImmutable('recordedByUserId', resource.data, request.resource.data);
+        allow read: if isSignedIn() || isVetForProject(projectId);
+        allow create, update: if isSignedIn();
         allow delete: if isAdmin();
       }
     }
 
-    /**
-     * @description Global Activity logs.
-     */
-    match /activityLogs/{logId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if false;
+    match /veterinarians/{vetId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

@@ -11,11 +11,12 @@
         "domain": { "type": "string", "enum": ["LIVESTOCK", "AGRICULTURE"] },
         "type": { "type": "string", "description": "e.g., Poultry, Pigs, Rabbits, Corn, Beans" },
         "status": { "type": "string", "enum": ["PLANNING", "ACTIVE", "COMPLETED", "CANCELLED"] },
+        "assignedVetId": { "type": "string", "description": "ID of the veterinarian in charge of monitoring." },
         "resources": {
           "type": "object",
           "properties": {
             "budget": { "type": "number" },
-            "landSize": { "type": "number", "description": "In hectares or square meters" },
+            "landSize": { "type": "number" },
             "hasStructures": { "type": "boolean" },
             "description": { "type": "string" }
           }
@@ -33,7 +34,7 @@
         "id": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["ADMIN", "INVESTOR", "MANAGER", "EMPLOYEE"] },
+        "role": { "type": "string", "enum": ["ADMIN", "INVESTOR", "MANAGER", "EMPLOYEE", "VETERINARIAN"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name", "email", "role"]

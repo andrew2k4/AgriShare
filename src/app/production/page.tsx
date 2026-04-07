@@ -1,3 +1,6 @@
+
+"use client";
+
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,15 +11,18 @@ import {
   Bird, 
   PlusCircle,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Stethoscope,
+  MessageCircle
 } from "lucide-react";
-import { MOCK_PRODUCTION } from "@/lib/mock-data";
+import { MOCK_PRODUCTION, MOCK_VETERINARIANS } from "@/lib/mock-data";
 import { ProductionChart } from "@/components/dashboard/ProductionChart";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function ProductionPage() {
   const latest = MOCK_PRODUCTION[MOCK_PRODUCTION.length - 1];
   const avgPonte = ((latest.eggsProduced / latest.chickenCount) * 100).toFixed(1);
+  const assignedVet = MOCK_VETERINARIANS[0];
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -25,12 +31,18 @@ export default function ProductionPage() {
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-primary">Suivi de Production</h1>
-            <p className="text-muted-foreground">Données journalières de ponte et mortalité.</p>
+            <p className="text-muted-foreground">Données journalières sous monitoring expert.</p>
           </div>
-          <Button className="bg-primary">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Saisie du Jour
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="border-primary text-primary">
+              <Stethoscope className="mr-2 h-4 w-4" />
+              Consulter l'expert
+            </Button>
+            <Button className="bg-primary">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Saisie du Jour
+            </Button>
+          </div>
         </header>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -79,24 +91,52 @@ export default function ProductionPage() {
             <ProductionChart />
           </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-accent" />
-                Alertes & Seuils
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
-                <p className="text-sm font-medium">Baisse de production légère</p>
-                <p className="text-xs text-muted-foreground mt-1">-5% sur les 3 derniers jours. Vérifier la qualité de l'aliment.</p>
-              </div>
-              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                <p className="text-sm font-medium">Mortalité stable</p>
-                <p className="text-xs text-muted-foreground mt-1">Inférieure à 0.5% par jour. Routine sanitaire OK.</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-accent" />
+                  Alertes & Seuils
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
+                  <p className="text-sm font-medium">Baisse de production légère</p>
+                  <p className="text-xs text-muted-foreground mt-1">-5% sur les 3 derniers jours. Vérifier la qualité de l'aliment.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {assignedVet && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="text-md flex items-center gap-2 text-primary">
+                    <Stethoscope className="h-5 w-5" />
+                    Monitoring Expert
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                      {assignedVet.name.charAt(4)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">{assignedVet.name}</p>
+                      <p className="text-xs text-muted-foreground">Vétérinaire Référent</p>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-white rounded-lg border text-xs">
+                    <p className="font-bold text-primary mb-1">Dernière prescription :</p>
+                    "Augmenter l'apport en calcium et surveiller l'hydratation suite aux pics de chaleur."
+                  </div>
+                  <Button className="w-full bg-primary" size="sm">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Envoyer les données
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
 
         <Card className="mt-8">

@@ -1,4 +1,6 @@
 
+"use client";
+
 import { StatCards } from "@/components/dashboard/StatCards";
 import { ProductionChart } from "@/components/dashboard/ProductionChart";
 import { AdvisorPanel } from "@/components/ai/AdvisorPanel";
@@ -9,14 +11,19 @@ import {
   History,
   TrendingUp,
   Package,
-  Layers
+  Layers,
+  Stethoscope,
+  Phone,
+  MessageSquare
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MOCK_TRANSACTIONS } from "@/lib/mock-data";
+import { MOCK_TRANSACTIONS, MOCK_VETERINARIANS } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const recentTransactions = MOCK_TRANSACTIONS.slice(0, 5);
+  const assignedVet = MOCK_VETERINARIANS[0]; // Simulation: Dr. Kamgaing assigned to this project
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -27,25 +34,41 @@ export default function Home() {
             <h1 className="text-3xl font-bold text-primary">Tableau de Bord</h1>
             <p className="text-muted-foreground">Bienvenue sur AgriShare. Gérer vos projets agro-pastoraux.</p>
           </div>
-          <div className="flex items-center gap-2 bg-white p-2 rounded-lg border">
-            <Layers className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Projet Actuel:</span>
-            <Badge variant="outline" className="bg-primary/5 text-primary">Ferme Poules Ndongo</Badge>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex items-center gap-2 bg-white p-2 rounded-lg border">
+              <Layers className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Projet:</span>
+              <Badge variant="outline" className="bg-primary/5 text-primary">Ferme Poules Ndongo</Badge>
+            </div>
+            {assignedVet && (
+              <div className="flex items-center gap-3 bg-primary/5 p-2 px-4 rounded-lg border border-primary/20">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Stethoscope className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Expert en charge</p>
+                  <p className="text-xs font-bold text-primary">{assignedVet.name}</p>
+                </div>
+                <div className="flex gap-1 ml-2">
+                  <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full text-primary hover:bg-primary/10">
+                    <Phone className="h-3 w-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full text-primary hover:bg-primary/10">
+                    <MessageSquare className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
         <section className="space-y-8">
-          {/* KPI Section */}
           <StatCards />
-
-          {/* AI Advisor Section */}
           <AdvisorPanel />
 
-          {/* Charts & Lists Section */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <ProductionChart />
 
-            {/* Recent Transactions */}
             <Card className="col-span-1">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div className="space-y-1">
@@ -77,7 +100,6 @@ export default function Home() {
             </Card>
           </div>
 
-          {/* Additional Quick Info */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
              <Card>
                 <CardHeader>
@@ -94,10 +116,6 @@ export default function Home() {
                   <div className="flex justify-between items-center text-sm">
                     <span>Plateaux Œufs (vides)</span>
                     <span className="font-bold">150 unités</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span>Vaccins Gumboro</span>
-                    <span className="font-bold">3 doses</span>
                   </div>
                 </CardContent>
              </Card>
@@ -117,9 +135,6 @@ export default function Home() {
                   <div className="flex justify-between items-center text-sm">
                     <span>Marie Tchakoute</span>
                     <span className="font-bold text-primary">30%</span>
-                  </div>
-                  <div className="pt-2 border-t text-xs text-muted-foreground">
-                    Basé sur 10,000,000 FCFA investis.
                   </div>
                 </CardContent>
              </Card>
