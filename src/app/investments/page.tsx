@@ -1,16 +1,41 @@
+
+"use client";
+
+import { useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Wallet, Users, History } from "lucide-react";
+import { PlusCircle, Wallet, Users, History, Edit2, Save, X } from "lucide-react";
 import { MOCK_INVESTMENTS } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 
 export default function InvestmentsPage() {
-  const totalInvested = MOCK_INVESTMENTS.reduce((sum, inv) => sum + inv.amount, 0);
+  const [investments, setInvestments] = useState(MOCK_INVESTMENTS);
+  const [editingInvestment, setEditingInvestment] = useState<any>(null);
+
+  const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
+
+  const handleUpdateInvestment = () => {
+    if (!editingInvestment) return;
+    
+    setInvestments(prev => 
+      prev.map(inv => inv.id === editingInvestment.id ? editingInvestment : inv)
+    );
+    
+    toast({
+      title: "Investissement mis à jour",
+      description: `L'apport de ${editingInvestment.userName} a été modifié.`,
+    });
+    setEditingInvestment(null);
+  };
 
   // Calculate shares per user
-  const sharesByUser = MOCK_INVESTMENTS.reduce((acc, inv) => {
+  const sharesByUser = investments.reduce((acc, inv) => {
     if (!acc[inv.userId]) {
       acc[inv.userId] = { name: inv.userName, total: 0 };
     }
@@ -25,7 +50,7 @@ export default function InvestmentsPage() {
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-primary">Gestion des Investissements</h1>
-            <p className="text-muted-foreground">Suivez les capitaux et l'évolution des parts dynamiques.</p>
+            <p className="text-muted-foreground">Suivez les capitaux et modifiez les parts si nécessaire.</p>
           </div>
           <Button className="w-full md:w-auto bg-primary">
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -34,7 +59,6 @@ export default function InvestmentsPage() {
         </header>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Summary Section */}
           <div className="lg:col-span-1 space-y-6">
             <Card className="bg-primary text-primary-foreground">
               <CardHeader className="pb-2">
@@ -73,9 +97,6 @@ export default function InvestmentsPage() {
                             style={{ width: `${sharePercent}%` }}
                           />
                         </div>
-                        <div className="text-xs text-muted-foreground text-right">
-                          {data.total.toLocaleString()} FCFA
-                        </div>
                       </div>
                     );
                   })}
@@ -84,16 +105,13 @@ export default function InvestmentsPage() {
             </Card>
           </div>
 
-          {/* History Section */}
           <div className="lg:col-span-2">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <History className="h-5 w-5 text-primary" />
-                    Historique des apports
-                  </CardTitle>
-                </div>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <History className="h-5 w-5 text-primary" />
+                  Historique des apports
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -102,11 +120,11 @@ export default function InvestmentsPage() {
                       <TableHead>Date</TableHead>
                       <TableHead>Investisseur</TableHead>
                       <TableHead className="text-right">Montant</TableHead>
-                      <TableHead className="text-right">Part ajoutée</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {MOCK_INVESTMENTS.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((inv) => (
+                    {[...investments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((inv) => (
                       <TableRow key={inv.id}>
                         <TableCell className="text-sm">
                           {new Date(inv.date).toLocaleDateString('fr-FR')}
@@ -116,9 +134,38 @@ export default function InvestmentsPage() {
                           {inv.amount.toLocaleString()} F
                         </TableCell>
                         <TableCell className="text-right">
-                           <Badge variant="outline" className="bg-primary/5 text-primary">
-                             +{(inv.amount / totalInvested * 100).toFixed(1)}%
-                           </Badge>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" onClick={() => setEditingInvestment(inv)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Modifier l'investissement</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                  <Label>Nom de l'investisseur</Label>
+                                  <Input 
+                                    value={editingInvestment?.userName || ""} 
+                                    onChange={(e) => setEditingInvestment({...editingInvestment, userName: e.target.value})}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Montant (FCFA)</Label>
+                                  <Input 
+                                    type="number"
+                                    value={editingInvestment?.amount || 0} 
+                                    onChange={(e) => setEditingInvestment({...editingInvestment, amount: Number(e.target.value)})}
+                                  />
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button className="bg-primary" onClick={handleUpdateInvestment}>Enregistrer</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         </TableCell>
                       </TableRow>
                     ))}
