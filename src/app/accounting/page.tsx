@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -80,7 +79,7 @@ export default function AccountingPage() {
               <DialogTrigger asChild>
                 <Button className="bg-primary">
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  Nouvelle Rubrique
+                  Nouvelle opération
                 </Button>
               </DialogTrigger>
               <DialogContent>
