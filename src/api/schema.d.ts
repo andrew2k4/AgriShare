@@ -511,6 +511,22 @@ export interface components {
              * @enum {string}
              */
             livestockType?: "PIG" | "CHICKEN" | "RABBIT";
+            /**
+             * Format: double
+             * @description Budget in FCFA
+             * @example 5000000
+             */
+            budget?: number;
+            /**
+             * Format: double
+             * @description Land size in m²
+             * @example 1000
+             */
+            landSize?: number;
+            /** @description Whether existing structures are present */
+            existingStructures?: boolean;
+            /** @description Additional notes */
+            notes?: string;
         };
     };
     responses: never;
