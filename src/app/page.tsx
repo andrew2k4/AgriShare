@@ -23,7 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/api";
 import type { components } from "@/api";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection } from "firebase/firestore";
 
 type OperationDto = components["schemas"]["OperationDto"];
@@ -43,8 +43,11 @@ interface FirestoreProject {
 
 export default function Home() {
   const db = useFirestore();
+  const { user, isUserLoading } = useUser();
   const projectsRef = useMemoFirebase(() => collection(db, "projects"), [db]);
-  const { data: projects } = useCollection<FirestoreProject>(projectsRef);
+  const { data: projects } = useCollection<FirestoreProject>(
+    isUserLoading || !user ? null : projectsRef
+  );
   const project = projects?.[0] ?? null;
 
   const [operations, setOperations] = useState<OperationDto[]>([]);
