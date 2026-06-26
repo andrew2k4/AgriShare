@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -15,7 +16,8 @@ import {
   Sprout,
   LogIn,
   LogOut,
-  Stethoscope
+  Stethoscope,
+  Home
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -24,7 +26,7 @@ import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 
 const navItems = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Investissements", href: "/investments", icon: Wallet },
   { name: "Comptabilité", href: "/accounting", icon: ReceiptText },
   { name: "Production", href: "/production", icon: Activity },
@@ -52,7 +54,7 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
             <div className="rounded-lg bg-primary p-1.5 shadow-sm">
               <Sprout className="h-6 w-6 text-primary-foreground" />
             </div>
@@ -61,6 +63,19 @@ export function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex md:items-center md:gap-4">
+            {!user && (
+              <Link
+                href="/"
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors hover:text-primary",
+                  pathname === "/" ? "text-primary font-bold" : "text-muted-foreground"
+                )}
+              >
+                <Home className="h-4 w-4" />
+                Accueil
+              </Link>
+            )}
+
             {user && navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -125,6 +140,20 @@ export function Navbar() {
       {isOpen && (
         <div className="md:hidden border-t bg-background animate-in slide-in-from-top duration-300">
           <div className="flex flex-col space-y-1 p-4">
+            {!user && (
+              <Link
+                href="/"
+                onClick={() => setIsOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition-colors",
+                  pathname === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Home className="h-5 w-5" />
+                Accueil
+              </Link>
+            )}
+            
             {user ? (
               <>
                 {navItems.map((item) => {

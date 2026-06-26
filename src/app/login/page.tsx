@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,7 +11,7 @@ import { useAuth, useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { Sprout, Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function LoginPage() {
@@ -25,7 +26,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !isUserLoading) {
-      router.push("/");
+      router.push("/dashboard");
     }
   }, [user, isUserLoading, router]);
 

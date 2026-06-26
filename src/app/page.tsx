@@ -1,146 +1,178 @@
 
 "use client";
 
-import { StatCards } from "@/components/dashboard/StatCards";
-import { ProductionChart } from "@/components/dashboard/ProductionChart";
-import { AdvisorPanel } from "@/components/ai/AdvisorPanel";
+import Link from "next/link";
+import Image from "next/image";
 import { Navbar } from "@/components/layout/Navbar";
-import { 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  History,
-  TrendingUp,
-  Package,
-  Layers,
-  Stethoscope,
-  Phone,
-  MessageSquare
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MOCK_TRANSACTIONS, MOCK_VETERINARIANS } from "@/lib/mock-data";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { 
+  Sprout, 
+  ShieldCheck, 
+  TrendingUp, 
+  Stethoscope, 
+  ArrowRight,
+  ChevronRight,
+  PieChart,
+  Users
+} from "lucide-react";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useUser } from "@/firebase";
 
-export default function Home() {
-  const recentTransactions = MOCK_TRANSACTIONS.slice(0, 5);
-  const assignedVet = MOCK_VETERINARIANS[0]; // Simulation: Dr. Kamgaing assigned to this project
+export default function LandingPage() {
+  const { user } = useUser();
+  const heroImage = PlaceHolderImages.find(img => img.id === "hero-farm");
 
   return (
-    <div className="min-h-screen bg-background pb-12">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container mx-auto px-4 py-8">
-        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-primary">Tableau de Bord</h1>
-            <p className="text-muted-foreground">Bienvenue sur AgriShare. Gérer vos projets agro-pastoraux.</p>
-          </div>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex items-center gap-2 bg-white p-2 rounded-lg border">
-              <Layers className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Projet:</span>
-              <Badge variant="outline" className="bg-primary/5 text-primary">Ferme Poules Ndongo</Badge>
+      
+      {/* Hero Section */}
+      <section className="relative py-20 overflow-hidden border-b">
+        <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-bold border border-primary/20">
+              <Sprout className="h-4 w-4" />
+              <span>L'Agro-pastoral Moderne au Cameroun</span>
             </div>
-            {assignedVet && (
-              <div className="flex items-center gap-3 bg-primary/5 p-2 px-4 rounded-lg border border-primary/20">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Stethoscope className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Expert en charge</p>
-                  <p className="text-xs font-bold text-primary">{assignedVet.name}</p>
-                </div>
-                <div className="flex gap-1 ml-2">
-                  <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full text-primary hover:bg-primary/10">
-                    <Phone className="h-3 w-3" />
+            <h1 className="text-4xl md:text-6xl font-extrabold text-foreground leading-tight">
+              Investissez dans la Terre avec <span className="text-primary">Transparence</span>.
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
+              AgriShare connecte les investisseurs aux projets agricoles et d'élevage, sous le monitoring constant d'experts vétérinaires. Suivez vos gains en temps réel.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              {user ? (
+                <Link href="/dashboard">
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 px-8 h-12 text-lg">
+                    Accéder à mon Dashboard <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full text-primary hover:bg-primary/10">
-                    <MessageSquare className="h-3 w-3" />
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button size="lg" className="bg-primary hover:bg-primary/90 px-8 h-12 text-lg">
+                      Commencer maintenant <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Button size="lg" variant="outline" className="border-primary text-primary px-8 h-12 text-lg">
+                    En savoir plus
                   </Button>
-                </div>
+                </>
+              )}
+            </div>
+          </div>
+          
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl border bg-white aspect-video">
+              {heroImage && (
+                <Image 
+                  src={heroImage.imageUrl} 
+                  alt={heroImage.description} 
+                  fill
+                  className="object-cover"
+                  data-ai-hint={heroImage.imageHint}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-3xl font-bold text-primary">Pourquoi choisir AgriShare ?</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Une plateforme conçue pour sécuriser vos investissements et maximiser les rendements grâce à l'expertise.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-2xl border hover:shadow-lg transition-shadow">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+                <ShieldCheck className="h-6 w-6" />
               </div>
-            )}
+              <h3 className="text-xl font-bold mb-3">Transparence Totale</h3>
+              <p className="text-sm text-muted-foreground">
+                Consultez chaque transaction, chaque vente d'œufs et chaque dépense en temps réel depuis votre tableau de bord.
+              </p>
+            </div>
+            
+            <div className="bg-white p-8 rounded-2xl border hover:shadow-lg transition-shadow">
+              <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                <Stethoscope className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Monitoring Expert</h3>
+              <p className="text-sm text-muted-foreground">
+                Tous les projets sont suivis par des vétérinaires vérifiés qui enregistrent les prescriptions et alertes sanitaires.
+              </p>
+            </div>
+            
+            <div className="bg-white p-8 rounded-2xl border hover:shadow-lg transition-shadow">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+                <PieChart className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Gains Dynamiques</h3>
+              <p className="text-sm text-muted-foreground">
+                Répartition équitable des bénéfices basée sur votre part de capital et l'ancienneté de votre apport.
+              </p>
+            </div>
           </div>
-        </header>
+        </div>
+      </section>
 
-        <section className="space-y-8">
-          <StatCards />
-          <AdvisorPanel />
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <ProductionChart />
-
-            <Card className="col-span-1">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <div className="space-y-1">
-                  <CardTitle className="text-lg">Dernières Opérations</CardTitle>
-                  <CardDescription>Comptabilité récente</CardDescription>
-                </div>
-                <History className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentTransactions.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`rounded-full p-2 ${tx.type === 'INCOME' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                          {tx.type === 'INCOME' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium leading-none">{tx.category}</span>
-                          <span className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString('fr-FR')}</span>
-                        </div>
-                      </div>
-                      <span className={`text-sm font-bold ${tx.type === 'INCOME' ? 'text-primary' : 'text-destructive'}`}>
-                        {tx.type === 'INCOME' ? '+' : '-'}{tx.amount.toLocaleString()} F
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+      {/* Stats / Call to action */}
+      <section className="py-20">
+        <div className="container mx-auto px-4 bg-primary rounded-[2rem] p-12 text-primary-foreground text-center space-y-8">
+          <h2 className="text-3xl md:text-4xl font-bold">Prêt à transformer l'agriculture camerounaise ?</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div>
+              <p className="text-4xl font-bold">10M+</p>
+              <p className="text-sm opacity-80">FCFA Investis</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold">91%</p>
+              <p className="text-sm opacity-80">Taux de Ponte Moyen</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold">15+</p>
+              <p className="text-sm opacity-80">Experts Vétérinaires</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold">100%</p>
+              <p className="text-sm opacity-80">Transparence</p>
+            </div>
           </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-             <Card>
-                <CardHeader>
-                  <CardTitle className="text-md flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary" />
-                    Inventaire Stock
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center text-sm">
-                    <span>Aliment Démarrage</span>
-                    <span className="font-bold">12 sacs</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span>Plateaux Œufs (vides)</span>
-                    <span className="font-bold">150 unités</span>
-                  </div>
-                </CardContent>
-             </Card>
-
-             <Card>
-                <CardHeader>
-                  <CardTitle className="text-md flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-accent" />
-                    Parts de Capital
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                   <div className="flex justify-between items-center text-sm">
-                    <span>Jean-Pierre Ndongo</span>
-                    <span className="font-bold text-primary">70%</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span>Marie Tchakoute</span>
-                    <span className="font-bold text-primary">30%</span>
-                  </div>
-                </CardContent>
-             </Card>
+          <div className="pt-4">
+            <Link href="/login">
+              <Button size="lg" variant="secondary" className="px-10 h-12 text-lg font-bold">
+                Créer mon compte <ChevronRight className="ml-1 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 border-t">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-primary p-1.5">
+              <Sprout className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-lg font-bold text-primary">AgriShare</span>
+          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            &copy; 2024 AgriShare. Tous droits réservés. Développé pour l'agro-pastoral au Cameroun.
+          </p>
+          <div className="flex gap-6 text-sm font-medium">
+            <Link href="#" className="hover:text-primary">Contact</Link>
+            <Link href="#" className="hover:text-primary">Mentions légales</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

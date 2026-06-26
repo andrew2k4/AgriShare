@@ -151,7 +151,7 @@ export default function NewProjectPage() {
     });
 
     setTimeout(() => {
-      router.push("/");
+      router.push("/dashboard");
     }, 1500);
   };
 
