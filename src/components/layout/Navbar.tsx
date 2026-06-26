@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -41,8 +40,12 @@ export function Navbar() {
   const auth = useAuth();
 
   const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/login");
+    try {
+      await signOut(auth);
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error", error);
+    }
   };
 
   return (
@@ -50,7 +53,7 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="rounded-lg bg-primary p-1.5">
+            <div className="rounded-lg bg-primary p-1.5 shadow-sm">
               <Sprout className="h-6 w-6 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold tracking-tight text-primary">AgriShare</span>
@@ -78,23 +81,25 @@ export function Navbar() {
             })}
             
             {user ? (
-              <>
+              <div className="flex items-center gap-2 ml-4">
                 <Link href="/projects/new">
-                  <Button size="sm" className="bg-primary ml-2">
+                  <Button size="sm" className="bg-primary hover:bg-primary/90">
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Nouveau Projet
+                    Projet
                   </Button>
                 </Link>
-                <Link href="/profile" className={cn("flex items-center gap-2 px-3 py-2 text-sm font-medium", pathname === "/profile" ? "text-primary" : "text-muted-foreground")}>
-                  <UserCircle className="h-4 w-4" />
+                <Link href="/profile">
+                  <Button variant="ghost" size="icon" className={cn(pathname === "/profile" ? "text-primary" : "text-muted-foreground")}>
+                    <UserCircle className="h-6 w-6" />
+                  </Button>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
-                  <LogOut className="h-4 w-4" />
+                <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
+                  <LogOut className="h-5 w-5" />
                 </Button>
-              </>
+              </div>
             ) : (
               <Link href="/login">
-                <Button size="sm" variant="outline" className="border-primary text-primary">
+                <Button size="sm" className="bg-primary">
                   <LogIn className="mr-2 h-4 w-4" />
                   Connexion
                 </Button>
@@ -104,13 +109,6 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-2">
-            {user && (
-              <Link href="/projects/new">
-                <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                  <PlusCircle className="h-4 w-4 text-primary" />
-                </Button>
-              </Link>
-            )}
             <Button
               variant="ghost"
               size="icon"
@@ -125,7 +123,7 @@ export function Navbar() {
 
       {/* Mobile Nav */}
       {isOpen && (
-        <div className="md:hidden border-t bg-background">
+        <div className="md:hidden border-t bg-background animate-in slide-in-from-top duration-300">
           <div className="flex flex-col space-y-1 p-4">
             {user ? (
               <>
@@ -149,6 +147,14 @@ export function Navbar() {
                   );
                 })}
                 <Link
+                  href="/projects/new"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-primary hover:bg-muted"
+                >
+                  <PlusCircle className="h-5 w-5" />
+                  Nouveau Projet
+                </Link>
+                <Link
                   href="/profile"
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-muted-foreground hover:bg-muted"
@@ -168,7 +174,7 @@ export function Navbar() {
                 className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-primary hover:bg-muted"
               >
                 <LogIn className="h-5 w-5" />
-                Connexion
+                Se connecter
               </Link>
             )}
           </div>

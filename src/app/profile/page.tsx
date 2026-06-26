@@ -1,12 +1,36 @@
+"use client";
+
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Shield, LogOut, Settings, Bell, FileText } from "lucide-react";
+import { User, Mail, Shield, LogOut, Settings, Bell, FileText, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { MOCK_USERS } from "@/lib/mock-data";
+import { useUser, useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
-  const currentUser = MOCK_USERS[0]; // Simulation Admin
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
+
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push("/login");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -26,13 +50,13 @@ export default function ProfilePage() {
                     <User className="h-12 w-12" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">{currentUser.name}</h2>
-                    <Badge className="bg-primary hover:bg-primary/90 mt-1">{currentUser.role}</Badge>
+                    <h2 className="text-xl font-bold">{user.displayName || "Utilisateur"}</h2>
+                    <Badge className="bg-primary hover:bg-primary/90 mt-1">Investisseur</Badge>
                   </div>
                   <div className="w-full pt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
                       <Mail className="h-4 w-4" />
-                      {currentUser.email}
+                      {user.email}
                     </div>
                   </div>
                   <Button variant="outline" className="w-full border-primary text-primary mt-4">
@@ -55,7 +79,11 @@ export default function ProfilePage() {
                    <Shield className="h-5 w-5 text-muted-foreground" />
                    Sécurité & MDP
                  </Button>
-                 <Button variant="ghost" className="w-full justify-start gap-3 h-12 text-destructive hover:text-destructive hover:bg-destructive/5">
+                 <Button 
+                   variant="ghost" 
+                   className="w-full justify-start gap-3 h-12 text-destructive hover:text-destructive hover:bg-destructive/5"
+                   onClick={handleLogout}
+                 >
                    <LogOut className="h-5 w-5" />
                    Déconnexion
                  </Button>
@@ -84,24 +112,14 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-bold text-sm">Gestion des Utilisateurs (Admin)</h4>
-                  <div className="space-y-2">
-                    {MOCK_USERS.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/10 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold">
-                            {user.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium leading-none">{user.name}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{user.role}</p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">Gérer</Button>
-                      </div>
-                    ))}
-                  </div>
+                <div className="p-6 border rounded-lg bg-primary/5 border-primary/20">
+                  <h4 className="font-bold text-sm text-primary flex items-center gap-2 mb-2">
+                    <Shield className="h-4 w-4" /> Mode Administrateur
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Vous avez accès à la gestion complète des projets et des vétérinaires. 
+                    Toutes les modifications sont tracées pour assurer la transparence envers les co-investisseurs.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -114,11 +132,11 @@ export default function ProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/10 cursor-pointer transition-colors">
                   <span className="text-sm font-medium">Bilan Financier Mensuel (PDF)</span>
                   <Button size="sm" variant="outline">Télécharger</Button>
                 </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/10 cursor-pointer transition-colors">
                   <span className="text-sm font-medium">Répartition des dividendes (Excel)</span>
                   <Button size="sm" variant="outline">Télécharger</Button>
                 </div>
