@@ -1,5 +1,6 @@
-# Firebase Studio
+# Agrishare
 
-This is a NextJS starter in Firebase Studio.
+in development
 
-To get started, take a look at src/app/page.tsx.
+
+
