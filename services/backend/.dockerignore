@@ -1,0 +1,6 @@
+target/
+.idea/
+.git/
+*.iml
+*.log
+src/main/resources/firebase-service-account.json
