@@ -1,0 +1,10 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-farm",
+      "description": "Vue aérienne d'une ferme moderne au Cameroun",
+      "imageUrl": "https://picsum.photos/seed/farmhero/1200/600",
+      "imageHint": "poultry farm"
+    }
+  ]
+}

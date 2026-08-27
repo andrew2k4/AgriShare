@@ -1,0 +1,65 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getRole() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc.exists ? userDoc.data.role : null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getRole() == 'ADMIN';
+    }
+
+    function isVetForProject(projectId) {
+      let projectData = get(/databases/$(database)/documents/projects/$(projectId)).data;
+      return isSignedIn() && (projectData.assignedVetId == request.auth.uid || getRole() == 'VETERINARIAN');
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || resource.data.createdBy == request.auth.uid;
+      allow delete: if isAdmin();
+
+      match /investments/{investmentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+        allow delete: if isAdmin();
+      }
+
+      match /transactions/{transactionId} {
+        allow read: if isSignedIn() || isVetForProject(projectId);
+        allow create, update: if isAdmin() || isOwner(resource.data.recordedByUserId);
+        allow delete: if isAdmin();
+      }
+
+      match /productionRecords/{recordId} {
+        allow read: if isSignedIn() || isVetForProject(projectId);
+        allow create, update: if isSignedIn();
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /veterinarians/{vetId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

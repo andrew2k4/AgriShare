@@ -1,0 +1,128 @@
+
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "type": "object",
+      "description": "Represents an agricultural or livestock project within AgriShare.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "domain": { "type": "string", "enum": ["LIVESTOCK", "AGRICULTURE"] },
+        "type": { "type": "string", "description": "e.g., Poultry, Pigs, Rabbits, Corn, Beans" },
+        "status": { "type": "string", "enum": ["PLANNING", "ACTIVE", "COMPLETED", "CANCELLED"] },
+        "assignedVetId": { "type": "string", "description": "ID of the veterinarian in charge of monitoring." },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "budget": { "type": "number" },
+            "landSize": { "type": "number" },
+            "hasStructures": { "type": "boolean" },
+            "description": { "type": "string" }
+          }
+        },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "domain", "type", "status", "createdBy", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "type": "object",
+      "description": "User profile with role-based access.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["ADMIN", "INVESTOR", "MANAGER", "EMPLOYEE", "VETERINARIAN"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Veterinarian": {
+      "title": "Veterinarian",
+      "type": "object",
+      "description": "Verified veterinarian profile.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "specialties": { "type": "array", "items": { "type": "string" } },
+        "location": { "type": "string" },
+        "phone": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "experienceYears": { "type": "number" }
+      },
+      "required": ["id", "name", "specialties", "location", "verified"]
+    },
+    "Investment": {
+      "title": "Investment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "investorId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "projectId", "investorId", "amount", "date"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "type": { "type": "string", "enum": ["INCOME", "EXPENSE"] },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "projectId", "type", "category", "amount", "date"]
+    },
+    "ProductionRecord": {
+      "title": "ProductionRecord",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "metrics": {
+          "type": "object",
+          "description": "Dynamic metrics based on project type"
+        },
+        "recordedBy": { "type": "string" }
+      },
+      "required": ["id", "projectId", "date", "metrics", "recordedBy"]
+    }
+  },
+  "auth": {
+    "providers": ["password", "google"]
+  },
+  "firestore": {
+    "projects/{projectId}": {
+      "schema": { "$ref": "#/backend/entities/Project" },
+      "description": "Main project container."
+    },
+    "users/{userId}": {
+      "schema": { "$ref": "#/backend/entities/UserProfile" },
+      "description": "Global user profiles."
+    },
+    "veterinarians/{vetId}": {
+      "schema": { "$ref": "#/backend/entities/Veterinarian" },
+      "description": "Database of verified veterinarians."
+    },
+    "projects/{projectId}/investments/{investmentId}": {
+      "schema": { "$ref": "#/backend/entities/Investment" },
+      "description": "Investments linked to a specific project."
+    },
+    "projects/{projectId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/backend/entities/Transaction" },
+      "description": "Project-specific financial ledger."
+    },
+    "projects/{projectId}/productionRecords/{recordId}": {
+      "schema": { "$ref": "#/backend/entities/ProductionRecord" },
+      "description": "Daily production or harvest data."
+    }
+  }
+}
