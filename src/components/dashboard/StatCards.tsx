@@ -1,22 +1,26 @@
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Wallet, 
-  Activity, 
-  CircleDollarSign 
+"use client";
+
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Wallet,
+  Activity,
+  CircleDollarSign,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { components } from "@/api";
+
+type OperationDto = components["schemas"]["OperationDto"];
+type InvestorDto = components["schemas"]["InvestorDto"];
+type ProductionDayDto = components["schemas"]["ProductionDayDto"];
 
 interface StatCardProps {
   title: string;
   value: string;
   icon: any;
   description?: string;
-  trend?: {
-    value: string;
-    positive: boolean;
-  };
+  trend?: { value: string; positive: boolean };
 }
 
 function StatCard({ title, value, icon: Icon, description, trend }: StatCardProps) {
@@ -47,57 +51,58 @@ function StatCard({ title, value, icon: Icon, description, trend }: StatCardProp
   );
 }
 
-export function StatCards() {
+interface Props {
+  operations: OperationDto[];
+  investors: InvestorDto[];
+  productions: ProductionDayDto[];
+}
+
+export function StatCards({ operations, investors, productions }: Props) {
+  const totalInvested = investors.reduce((s, i) => s + i.contribution, 0);
+  const totalRevenue = operations
+    .filter((o) => o.operationType === "INCOME")
+    .reduce((s, o) => s + o.amount, 0);
+  const totalExpenses = operations
+    .filter((o) => o.operationType === "EXPENSE")
+    .reduce((s, o) => s + o.amount, 0);
+  const netProfit = totalRevenue - totalExpenses;
+  const lastProduction = productions.at(-1);
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatCard
         title="Total Investi"
-        value="10,000,000 FCFA"
+        value={`${totalInvested.toLocaleString()} FCFA`}
         icon={Wallet}
         description="depuis le début"
       />
       <StatCard
         title="Revenus"
-        value="1,350,000 FCFA"
+        value={`${totalRevenue.toLocaleString()} FCFA`}
         icon={CircleDollarSign}
-        trend={{ value: "12%", positive: true }}
-        description="ce mois"
+        description="toutes périodes"
       />
       <StatCard
         title="Dépenses"
-        value="450,000 FCFA"
+        value={`${totalExpenses.toLocaleString()} FCFA`}
         icon={TrendingDown}
-        trend={{ value: "5%", positive: false }}
-        description="ce mois"
+        description="toutes périodes"
       />
       <StatCard
         title="Bénéfice Net"
-        value="900,000 FCFA"
+        value={`${netProfit.toLocaleString()} FCFA`}
         icon={TrendingUp}
         description="disponible"
       />
       <StatCard
-        title="Production Jour"
-        value="450 Œufs"
+        title="Production (dernier jour)"
+        value={lastProduction ? String(lastProduction.quantity) : "—"}
         icon={Activity}
-        trend={{ value: "2%", positive: true }}
-        description="vs hier"
-      />
-      <StatCard
-        title="Taux de Ponte"
-        value="91%"
-        icon={Activity}
-        description="Moyenne troupeau"
-      />
-      <StatCard
-        title="Mortalité Jour"
-        value="2"
-        icon={TrendingDown}
-        description="Poules"
+        description={lastProduction ? new Date(lastProduction.date).toLocaleDateString("fr-FR") : "aucune donnée"}
       />
       <StatCard
         title="Investisseurs"
-        value="3"
+        value={String(investors.length)}
         icon={Users}
         description="Actifs"
       />

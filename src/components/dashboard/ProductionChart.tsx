@@ -9,50 +9,65 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MOCK_PRODUCTION } from "@/lib/mock-data";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import type { components } from "@/api";
 
-export function ProductionChart() {
+type ProductionDayDto = components["schemas"]["ProductionDayDto"];
+
+interface Props {
+  data: ProductionDayDto[];
+}
+
+export function ProductionChart({ data }: Props) {
   return (
     <Card className="col-span-1 lg:col-span-2">
       <CardHeader>
-        <CardTitle>Production d'Œufs</CardTitle>
+        <CardTitle>Production</CardTitle>
         <CardDescription>Évolution des 7 derniers jours</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={MOCK_PRODUCTION}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+            <LineChart data={data.slice(-7)}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="hsl(var(--muted))"
+              />
               <XAxis
                 dataKey="date"
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) => new Date(value).toLocaleDateString('fr-FR', { weekday: 'short' })}
+                tickFormatter={(v) =>
+                  new Date(v).toLocaleDateString("fr-FR", { weekday: "short" })
+                }
               />
               <YAxis
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) => `${value}`}
               />
               <Tooltip
                 content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
+                  if (active && payload?.length) {
                     return (
                       <div className="rounded-lg border bg-background p-2 shadow-sm">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Œufs
-                            </span>
-                            <span className="font-bold text-primary">
-                              {payload[0].value}
-                            </span>
-                          </div>
+                        <div className="flex flex-col">
+                          <span className="text-[0.70rem] uppercase text-muted-foreground">
+                            Production
+                          </span>
+                          <span className="font-bold text-primary">
+                            {payload[0].value}
+                          </span>
                         </div>
                       </div>
                     );
@@ -62,7 +77,7 @@ export function ProductionChart() {
               />
               <Line
                 type="monotone"
-                dataKey="eggsProduced"
+                dataKey="quantity"
                 stroke="hsl(var(--primary))"
                 strokeWidth={3}
                 dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
