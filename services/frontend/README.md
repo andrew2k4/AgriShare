@@ -1,6 +1,0 @@
-# Agrishare
-
-in development
-
-
-

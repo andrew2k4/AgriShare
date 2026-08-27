@@ -1,35 +1,30 @@
 services:
-
   db:
     image: postgres:17-alpine
     container_name: agricul-db
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: agricul
-      POSTGRES_USER: agricul
-      POSTGRES_PASSWORD: agricul
+    env_file:
+      - .env.template
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agricul -d agricul"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   app:
-    build: .
+    build:
+      context: ../../services/backend
+      dockerfile: Dockerfile
     container_name: agricul-app
     restart: unless-stopped
     ports:
       - "8000:8000"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/agricul
-      SPRING_DATASOURCE_USERNAME: agricul
-      SPRING_DATASOURCE_PASSWORD: agricul
-      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      FIREBASE_ENABLED: false
+    env_file:
+      - .env.template
     depends_on:
       db:
         condition: service_healthy
