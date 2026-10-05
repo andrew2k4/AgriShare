@@ -11,6 +11,9 @@ public record OperationDto(
         @Schema(description = "Operation identifier", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
         Long id,
 
+        @Schema(description = "Project this operation belongs to (optional, for backward compatibility with the global ledger)", example = "1")
+        Long projectId,
+
         @Schema(description = "Operation label", example = "Seed purchase", requiredMode = Schema.RequiredMode.REQUIRED)
         String label,
 

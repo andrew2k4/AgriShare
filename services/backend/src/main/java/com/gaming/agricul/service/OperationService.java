@@ -21,6 +21,11 @@ public class OperationService {
     }
 
     @Transactional(readOnly = true)
+    public List<Operation> findByProject(Long projectId) {
+        return operationRepository.findByProjectId(projectId);
+    }
+
+    @Transactional(readOnly = true)
     public Operation findById(Long id) {
         return operationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Operation not found with id: " + id));
