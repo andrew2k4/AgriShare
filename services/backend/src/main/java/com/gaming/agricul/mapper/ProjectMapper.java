@@ -28,7 +28,8 @@ public class ProjectMapper {
         ProjectCapitalDto capital = null;
         if (project.getCapital() != null) {
             ProjectCapital c = project.getCapital();
-            capital = new ProjectCapitalDto(c.getInitialCapital(), c.getCurrentCapital(), c.getTotalInvestment(), c.getTotalExpenses());
+            capital = new ProjectCapitalDto(c.getInitialCapital(), c.getCurrentCapital(), c.getTotalInvestment(),
+                    c.getTotalExpenses(), c.getReferenceDurationDays(), c.getCurrentPhase());
         }
 
         ProjectStatisticsDto statistics = null;
@@ -84,7 +85,8 @@ public class ProjectMapper {
         }
         if (dto.capital() != null) {
             ProjectCapitalDto c = dto.capital();
-            project.setCapital(new ProjectCapital(c.initialCapital(), c.currentCapital(), c.totalInvestment(), c.totalExpenses()));
+            project.setCapital(new ProjectCapital(c.initialCapital(), c.currentCapital(), c.totalInvestment(),
+                    c.totalExpenses(), c.referenceDurationDays(), c.currentPhase()));
         }
         if (dto.statistics() != null) {
             ProjectStatisticsDto s = dto.statistics();
