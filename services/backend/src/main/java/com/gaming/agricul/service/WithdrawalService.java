@@ -75,7 +75,7 @@ public class WithdrawalService {
         Withdrawal withdrawal = new Withdrawal(
                 null, contributionId, projectId, contribution.getInvestorId(), amount,
                 null, null, null, null, null,
-                requestedByAppUserId, Instant.now(), null, null
+                requestedByAppUserId, Instant.now(), null, null, null
         );
 
         if (projectedValue.compareTo(minProjectValue) < 0) {

@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -65,4 +66,8 @@ public class Asset {
 
     @Column(name = "disposal_investor_id")
     private Long disposalInvestorId;
+
+    /** Optimistic lock: protects concurrent ownership/disposition transitions on the same asset. */
+    @Version
+    private Long version;
 }

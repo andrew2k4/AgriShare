@@ -65,7 +65,7 @@ public class LeaseService {
             throw new BusinessRuleException("This asset already has an active lease");
         }
 
-        Lease lease = new Lease(null, assetId, request.monthlyRent(), request.startDate(), null, LeaseStatus.ACTIVE);
+        Lease lease = new Lease(null, assetId, request.monthlyRent(), request.startDate(), null, LeaseStatus.ACTIVE, null);
         return leaseRepository.save(lease);
     }
 

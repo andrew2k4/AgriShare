@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -85,4 +86,8 @@ public class ProfitDistribution {
     @ElementCollection
     @CollectionTable(name = "profit_distribution_lines", joinColumns = @JoinColumn(name = "distribution_id"))
     private List<ProfitDistributionLine> lines = new ArrayList<>();
+
+    /** Optimistic lock: prevents a validate/reject race from silently overwriting the other. */
+    @Version
+    private Long version;
 }

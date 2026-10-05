@@ -86,7 +86,7 @@ public class ProfitDistributionService {
         ProfitDistribution distribution = new ProfitDistribution(
                 null, projectId, request.periodStart(), request.periodEnd(),
                 revenue, operatingCosts, taxes, reserve, reinvestment, distributableProfit,
-                DistributionStatus.PROPOSED, proposedByAppUserId, Instant.now(), null, null, lines
+                DistributionStatus.PROPOSED, proposedByAppUserId, Instant.now(), null, null, lines, null
         );
         return distributionRepository.save(distribution);
     }
