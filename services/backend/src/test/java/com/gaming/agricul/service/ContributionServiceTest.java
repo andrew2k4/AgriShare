@@ -139,7 +139,7 @@ class ContributionServiceTest {
     @Test
     void addContribution_inKind_transfersAssetToCapitalAndRejectsIfLeased() {
         Asset asset = new Asset(5L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null, null);
         when(assetRepository.findById(5L)).thenReturn(Optional.of(asset));
         when(contributionRepository.findByProjectId(1L)).thenReturn(List.of());
 
@@ -155,10 +155,10 @@ class ContributionServiceTest {
     @Test
     void addContribution_inKind_rejectsAssetUnderActiveLease() {
         Asset asset = new Asset(5L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null, null);
         when(assetRepository.findById(5L)).thenReturn(Optional.of(asset));
         when(leaseRepository.findFirstByAssetIdAndStatus(5L, LeaseStatus.ACTIVE))
-                .thenReturn(Optional.of(new Lease(1L, 5L, BigDecimal.TEN, LocalDate.now(), null, LeaseStatus.ACTIVE)));
+                .thenReturn(Optional.of(new Lease(1L, 5L, BigDecimal.TEN, LocalDate.now(), null, LeaseStatus.ACTIVE, null)));
 
         assertThatThrownBy(() -> contributionService.addContribution(
                 1L, 10L, ContributionType.IN_KIND, new BigDecimal("8000000"), LocalDate.now(), 5L))
@@ -168,7 +168,7 @@ class ContributionServiceTest {
     @Test
     void addContribution_inKind_rejectsAssetNotOwnedByThisInvestor() {
         Asset asset = new Asset(5L, 1L, 99L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null, null);
         when(assetRepository.findById(5L)).thenReturn(Optional.of(asset));
 
         assertThatThrownBy(() -> contributionService.addContribution(

@@ -47,7 +47,7 @@ class LeaseServiceTest {
 
     private Asset ownedAsset() {
         return new Asset(5L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null, null);
     }
 
     @Test
@@ -75,7 +75,7 @@ class LeaseServiceTest {
     void create_rejectsAssetWithAnExistingActiveLease() {
         when(assetRepository.findById(5L)).thenReturn(Optional.of(ownedAsset()));
         when(leaseRepository.findFirstByAssetIdAndStatus(5L, LeaseStatus.ACTIVE))
-                .thenReturn(Optional.of(new Lease(1L, 5L, BigDecimal.TEN, LocalDate.now(), null, LeaseStatus.ACTIVE)));
+                .thenReturn(Optional.of(new Lease(1L, 5L, BigDecimal.TEN, LocalDate.now(), null, LeaseStatus.ACTIVE, null)));
 
         assertThatThrownBy(() -> leaseService.create(5L, new CreateLeaseRequest(new BigDecimal("80000"), LocalDate.now())))
                 .isInstanceOf(BusinessRuleException.class);
@@ -83,7 +83,7 @@ class LeaseServiceTest {
 
     @Test
     void postRent_postsAnExpenseOperationOnTheAssetsProject() {
-        Lease lease = new Lease(1L, 5L, new BigDecimal("80000"), LocalDate.now(), null, LeaseStatus.ACTIVE);
+        Lease lease = new Lease(1L, 5L, new BigDecimal("80000"), LocalDate.now(), null, LeaseStatus.ACTIVE, null);
         when(leaseRepository.findById(1L)).thenReturn(Optional.of(lease));
         when(assetRepository.findById(5L)).thenReturn(Optional.of(ownedAsset()));
         ArgumentCaptor<com.gaming.agricul.Operation> captor = ArgumentCaptor.forClass(com.gaming.agricul.Operation.class);
@@ -98,7 +98,7 @@ class LeaseServiceTest {
 
     @Test
     void postRent_rejectsEndedLease() {
-        Lease ended = new Lease(1L, 5L, new BigDecimal("80000"), LocalDate.now(), LocalDate.now(), LeaseStatus.ENDED);
+        Lease ended = new Lease(1L, 5L, new BigDecimal("80000"), LocalDate.now(), LocalDate.now(), LeaseStatus.ENDED, null);
         when(leaseRepository.findById(1L)).thenReturn(Optional.of(ended));
 
         assertThatThrownBy(() -> leaseService.postRent(1L)).isInstanceOf(BusinessRuleException.class);

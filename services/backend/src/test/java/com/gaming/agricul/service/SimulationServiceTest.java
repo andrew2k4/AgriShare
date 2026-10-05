@@ -51,7 +51,7 @@ class SimulationServiceTest {
         simulationService = new SimulationService(projectRepository, assetRepository, leaseRepository);
         when(projectRepository.existsById(1L)).thenReturn(true);
         Asset ferme = new Asset(1L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null, null);
         when(assetRepository.findByProjectId(1L)).thenReturn(List.of(ferme));
         when(leaseRepository.findFirstByAssetIdAndStatus(1L, LeaseStatus.ACTIVE)).thenReturn(Optional.empty());
 
@@ -67,10 +67,10 @@ class SimulationServiceTest {
         simulationService = new SimulationService(projectRepository, assetRepository, leaseRepository);
         when(projectRepository.existsById(1L)).thenReturn(true);
         Asset ferme = new Asset(1L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null, null);
         when(assetRepository.findByProjectId(1L)).thenReturn(List.of(ferme));
         when(leaseRepository.findFirstByAssetIdAndStatus(1L, LeaseStatus.ACTIVE))
-                .thenReturn(Optional.of(new Lease(1L, 1L, new BigDecimal("80000"), LocalDate.now(), null, LeaseStatus.ACTIVE)));
+                .thenReturn(Optional.of(new Lease(1L, 1L, new BigDecimal("80000"), LocalDate.now(), null, LeaseStatus.ACTIVE, null)));
 
         ProjectUsageSimulationDto simulation = simulationService.simulateAssetUsage(1L, new BigDecimal("1.0"));
 

@@ -69,7 +69,7 @@ class ProjectClosureServiceTest {
     @Test
     void disposeAsset_rejectsWhenProjectNotClosed() {
         Asset asset = new Asset(5L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.TRANSFERRED_TO_PROJECT, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.TRANSFERRED_TO_PROJECT, AssetDisposition.PENDING, null, null, null);
         Project project = new Project();
         project.setId(1L);
         when(assetRepository.findById(5L)).thenReturn(Optional.of(asset));
@@ -82,7 +82,7 @@ class ProjectClosureServiceTest {
     @Test
     void disposeAsset_rejectsAssetStillOwnedByContributor() {
         Asset asset = new Asset(5L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null, null);
         when(assetRepository.findById(5L)).thenReturn(Optional.of(asset));
 
         assertThatThrownBy(() -> service.disposeAsset(5L, AssetDisposition.SOLD, new BigDecimal("8500000"), null))
@@ -92,7 +92,7 @@ class ProjectClosureServiceTest {
     @Test
     void disposeAsset_sold_postsIncomeOperation() {
         Asset asset = new Asset(5L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.TRANSFERRED_TO_PROJECT, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.TRANSFERRED_TO_PROJECT, AssetDisposition.PENDING, null, null, null);
         Project project = new Project();
         project.setId(1L);
         project.setStatus(ProjectStatus.CLOSED);
@@ -113,7 +113,7 @@ class ProjectClosureServiceTest {
     void disposeAsset_rejectsAlreadySettledAsset() {
         Asset asset = new Asset(5L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
                 new BigDecimal("8000000"), AssetOwnershipStatus.TRANSFERRED_TO_PROJECT, AssetDisposition.SOLD,
-                new BigDecimal("8500000"), null);
+                new BigDecimal("8500000"), null, null);
         Project project = new Project();
         project.setId(1L);
         project.setStatus(ProjectStatus.CLOSED);
