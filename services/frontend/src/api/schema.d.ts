@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/users/{id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Assign a role to a user (Admin only) */
+        put: operations["updateRole"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-inventories/{id}": {
         parameters: {
             query?: never;
@@ -118,6 +135,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/financial-parameters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the global default coefficients (Admin only) */
+        get: operations["listGlobalDefaults"];
+        /** Set (create or override) a coefficient, globally or for one project (Admin only) */
+        put: operations["setParameter"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/withdrawals/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a requested withdrawal (must be a different Admin/Manager than the requester) */
+        post: operations["validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/withdrawals/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a requested withdrawal (must be a different Admin/Manager than the requester) */
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-inventories": {
         parameters: {
             query?: never;
@@ -136,6 +205,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/repayments/{id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a repayment as paid (posts an expense operation on the project) */
+        post: operations["markPaid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects": {
         parameters: {
             query?: never;
@@ -148,6 +234,77 @@ export interface paths {
         put?: never;
         /** Create a new project linked to the authenticated user */
         post: operations["save_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{projectId}/distributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all distributions (any status) for a project */
+        get: operations["findByProject"];
+        put?: never;
+        /** Propose a new profit distribution for a project and period (Admin/Manager only) */
+        post: operations["propose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{projectId}/contributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all contributions recorded for a project */
+        get: operations["findByProject_1"];
+        put?: never;
+        /** Record a new investor contribution to a project */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{projectId}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all assets registered for a project */
+        get: operations["findByProject_2"];
+        put?: never;
+        /** Register a new asset for a project */
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a project; its capital assets must then be settled individually (see Assets) */
+        post: operations["close"];
         delete?: never;
         options?: never;
         head?: never;
@@ -190,6 +347,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/leases/{id}/post-rent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post one period's rent as an expense operation on the project */
+        post: operations["postRent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leases/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End a lease */
+        post: operations["end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/investors": {
         parameters: {
             query?: never;
@@ -202,6 +393,75 @@ export interface paths {
         put?: never;
         /** Create a new investor */
         post: operations["save_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distributions/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a proposed distribution (must be a different Admin/Manager than the proposer) */
+        post: operations["validate_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distributions/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a proposed distribution (must be a different Admin/Manager than the proposer) */
+        post: operations["reject_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contributions/{contributionId}/withdrawals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request a capital withdrawal from a contribution (Admin/Manager only) */
+        post: operations["request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contributions/{contributionId}/repayments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all repayments for a contribution */
+        get: operations["findByContribution"];
+        put?: never;
+        /** Schedule a repayment for a LOAN or TEMPORARY_INVESTMENT contribution */
+        post: operations["schedule"];
         delete?: never;
         options?: never;
         head?: never;
@@ -226,6 +486,177 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/assets/{id}/dispose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Settle a capital asset once its project is closed (sold, or bought out by an investor) */
+        post: operations["dispose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{assetId}/leases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all leases (any status) for an asset */
+        get: operations["findByAsset"];
+        put?: never;
+        /** Lease an asset to its project */
+        post: operations["create_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retrieve all application users (Admin only) */
+        get: operations["findAll_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{projectId}/withdrawals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all withdrawal requests (any status) for a project */
+        get: operations["findByProject_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{projectId}/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Simulate the hypothetical monthly cost of using every asset as if it were rented */
+        get: operations["simulate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{projectId}/investors/{investorId}/roi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compute an investor's ROI (simple and annualized) on a project */
+        get: operations["compute"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{projectId}/financial-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compute the financial dashboard indicators for a project */
+        get: operations["compute_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/operations/by-project/{projectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retrieve all operations recorded for a given project */
+        get: operations["findByProject_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investors/{investorId}/contributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all contributions made by an investor across every project (global view) */
+        get: operations["findByInvestor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distributions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find a distribution by id */
+        get: operations["findById_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/me": {
         parameters: {
             query?: never;
@@ -233,8 +664,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get the current authenticated user's info from the Firebase token */
+        /** Get the current authenticated user's info from the Firebase token, including their role */
         get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find an asset by id */
+        get: operations["findById_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -247,6 +695,50 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Request to change a user's role */
+        UpdateRoleRequest: {
+            /**
+             * @description New role to assign
+             * @example MANAGER
+             * @enum {string}
+             */
+            role: "ADMIN" | "MANAGER" | "INVESTOR" | "EMPLOYEE";
+        };
+        /** @description Application user, linked to a Firebase account, with an assigned role */
+        AppUserDto: {
+            /**
+             * Format: int64
+             * @description User identifier
+             * @example 1
+             */
+            readonly id?: number;
+            /**
+             * @description Firebase UID
+             * @example abc123
+             */
+            readonly firebaseUid?: string;
+            /**
+             * @description Email address
+             * @example marie@agrishare.app
+             */
+            email?: string;
+            /**
+             * @description Display name
+             * @example Marie Curie
+             */
+            displayName?: string;
+            /**
+             * @description Assigned role
+             * @example MANAGER
+             * @enum {string}
+             */
+            role: "ADMIN" | "MANAGER" | "INVESTOR" | "EMPLOYEE";
+            /**
+             * Format: date-time
+             * @description Account creation timestamp
+             */
+            readonly createdAt?: string;
+        };
         /** @description Project stock inventory */
         StockInventoryDto: {
             /**
@@ -276,38 +768,6 @@ export interface components {
              * @example kg
              */
             unit: string;
-        };
-        /** @description Financial operation (income or expense) */
-        OperationDto: {
-            /**
-             * Format: int64
-             * @description Operation identifier
-             * @example 1
-             */
-            readonly id?: number;
-            /**
-             * @description Operation label
-             * @example Seed purchase
-             */
-            label: string;
-            /**
-             * Format: date
-             * @description Operation date
-             * @example 2025-04-10
-             */
-            date: string;
-            /**
-             * Format: double
-             * @description Operation amount
-             * @example 1500
-             */
-            amount: number;
-            /**
-             * @description Operation type: INCOME or EXPENSE
-             * @example EXPENSE
-             * @enum {string}
-             */
-            operationType: "INCOME" | "EXPENSE";
         };
         /** @description Daily production record */
         ProductionDayDto: {
@@ -356,6 +816,18 @@ export interface components {
              * @example 45000
              */
             totalExpenses?: number;
+            /**
+             * Format: int32
+             * @description Reference duration (in days) used to compute the time factor of contribution units
+             * @example 365
+             */
+            referenceDurationDays?: number;
+            /**
+             * @description Current lifecycle phase, used to look up the risk factor
+             * @example STABLE
+             * @enum {string}
+             */
+            currentPhase?: "STARTUP" | "RAMP_UP" | "PRE_PRODUCTION" | "STABLE" | "WIND_DOWN";
         };
         /** @description Agricultural or livestock project */
         ProjectDto: {
@@ -384,6 +856,12 @@ export interface components {
              * @enum {string}
              */
             livestockType?: "PIG" | "CHICKEN" | "RABBIT";
+            /**
+             * @description Project lifecycle status
+             * @example ACTIVE
+             * @enum {string}
+             */
+            readonly status?: "ACTIVE" | "CLOSED";
             /** @description Project resources */
             resources?: components["schemas"]["ProjectResourcesDto"];
             /** @description Project financial capital */
@@ -392,8 +870,6 @@ export interface components {
             statistics?: components["schemas"]["ProjectStatisticsDto"];
             /** @description Recorded production days */
             productions?: components["schemas"]["ProductionDayDto"][];
-            /** @description Financial operations of the project */
-            operations?: components["schemas"]["OperationDto"][];
         };
         /** @description Project resources */
         ProjectResourcesDto: {
@@ -447,6 +923,44 @@ export interface components {
              */
             productivityRate?: number;
         };
+        /** @description Financial operation (income or expense) */
+        OperationDto: {
+            /**
+             * Format: int64
+             * @description Operation identifier
+             * @example 1
+             */
+            readonly id?: number;
+            /**
+             * Format: int64
+             * @description Project this operation belongs to (optional, for backward compatibility with the global ledger)
+             * @example 1
+             */
+            projectId?: number;
+            /**
+             * @description Operation label
+             * @example Seed purchase
+             */
+            label: string;
+            /**
+             * Format: date
+             * @description Operation date
+             * @example 2025-04-10
+             */
+            date: string;
+            /**
+             * Format: double
+             * @description Operation amount
+             * @example 1500
+             */
+            amount: number;
+            /**
+             * @description Operation type: INCOME or EXPENSE
+             * @example EXPENSE
+             * @enum {string}
+             */
+            operationType: "INCOME" | "EXPENSE";
+        };
         /** @description Project investor */
         InvestorDto: {
             /**
@@ -492,6 +1006,149 @@ export interface components {
              */
             percentage: number;
         };
+        /** @description Request to set (create or override) a financial coefficient */
+        SetFinancialParameterRequest: {
+            /**
+             * @description Parameter key, e.g. RISK_FACTOR:STABLE or IMPACT_FACTOR
+             * @example RISK_FACTOR:STABLE
+             */
+            paramKey: string;
+            /**
+             * Format: int64
+             * @description Project to override; omit for a global default
+             */
+            projectId?: number;
+            /**
+             * @description Coefficient value
+             * @example 1.1
+             */
+            value: number;
+        };
+        /** @description A configurable financial coefficient (risk factor, impact factor...) */
+        FinancialParameterDto: {
+            /**
+             * Format: int64
+             * @description Parameter identifier
+             * @example 1
+             */
+            readonly id?: number;
+            /**
+             * @description Parameter key
+             * @example RISK_FACTOR:STABLE
+             */
+            paramKey: string;
+            /**
+             * Format: int64
+             * @description Project this override applies to; null means a global default
+             */
+            projectId?: number;
+            /**
+             * @description Coefficient value
+             * @example 1.1
+             */
+            value: number;
+            /**
+             * Format: date-time
+             * @description Last update timestamp
+             */
+            readonly updatedAt?: string;
+        };
+        /** @description A capital withdrawal request against a contribution */
+        WithdrawalDto: {
+            /**
+             * Format: int64
+             * @description Withdrawal identifier
+             */
+            readonly id?: number;
+            /**
+             * Format: int64
+             * @description Contribution this withdrawal is taken from
+             */
+            contributionId?: number;
+            /**
+             * Format: int64
+             * @description Project identifier
+             */
+            readonly projectId?: number;
+            /**
+             * Format: int64
+             * @description Investor identifier
+             */
+            readonly investorId?: number;
+            /** @description Requested amount */
+            requestedAmount: number;
+            /** @description Penalty rate applied at validation (0-1) */
+            readonly penaltyRate?: number;
+            /** @description Resulting loss for the investor */
+            readonly resultingLoss?: number;
+            /** @description Net amount actually paid out */
+            readonly netAmountPaid?: number;
+            /**
+             * @description Status
+             * @enum {string}
+             */
+            readonly status?: "REQUESTED" | "VALIDATED" | "REJECTED" | "BLOCKED";
+            /** @description Reason the withdrawal is blocked, if applicable */
+            readonly blockReason?: string;
+            /**
+             * Format: int64
+             * @description AppUser id who requested this withdrawal
+             */
+            readonly requestedBy?: number;
+            /**
+             * Format: date-time
+             * @description Request timestamp
+             */
+            readonly requestedAt?: string;
+            /**
+             * Format: int64
+             * @description AppUser id who validated or rejected this withdrawal
+             */
+            readonly validatedBy?: number;
+            /**
+             * Format: date-time
+             * @description Validation/rejection timestamp
+             */
+            readonly validatedAt?: string;
+        };
+        /** @description A planned or paid repayment of principal + interest for a LOAN or TEMPORARY_INVESTMENT contribution */
+        RepaymentDto: {
+            /**
+             * Format: int64
+             * @description Repayment identifier
+             */
+            readonly id?: number;
+            /**
+             * Format: int64
+             * @description Contribution being repaid
+             */
+            readonly contributionId?: number;
+            /**
+             * @description Principal to repay
+             * @example 2000000
+             */
+            principalAmount: number;
+            /**
+             * @description Interest/compensation agreed
+             * @example 100000
+             */
+            interestAmount?: number;
+            /**
+             * Format: date
+             * @description Due date
+             */
+            dueDate: string;
+            /**
+             * @description Status
+             * @enum {string}
+             */
+            readonly status?: "PENDING" | "PAID";
+            /**
+             * Format: date-time
+             * @description Payment timestamp, once paid
+             */
+            readonly paidAt?: string;
+        };
         /** @description Request payload to create a new project */
         CreateProjectRequest: {
             /**
@@ -523,10 +1180,455 @@ export interface components {
              * @example 1000
              */
             landSize?: number;
-            /** @description Whether existing structures are present */
+            /**
+             * @description Whether existing structures are present
+             * @example false
+             */
             existingStructures?: boolean;
-            /** @description Additional notes */
+            /**
+             * @description Additional notes
+             * @example Terrain proche de Douala
+             */
             notes?: string;
+        };
+        /** @description Request to propose a new profit distribution for a project and period */
+        ProposeDistributionRequest: {
+            /**
+             * Format: date
+             * @description Period start
+             * @example 2026-01-01
+             */
+            periodStart: string;
+            /**
+             * Format: date
+             * @description Period end
+             * @example 2026-03-31
+             */
+            periodEnd: string;
+            /**
+             * @description Taxes to deduct from the period's result
+             * @example 0
+             */
+            taxes?: number;
+            /**
+             * @description Reserve to keep aside before distributing
+             * @example 0
+             */
+            reserve?: number;
+            /**
+             * @description Amount to reinvest into the project before distributing
+             * @example 0
+             */
+            reinvestment?: number;
+        };
+        /** @description A profit distribution proposed (and possibly validated) for a project and period */
+        ProfitDistributionDto: {
+            /**
+             * Format: int64
+             * @description Distribution identifier
+             */
+            readonly id?: number;
+            /**
+             * Format: int64
+             * @description Project identifier
+             */
+            readonly projectId?: number;
+            /**
+             * Format: date
+             * @description Period start
+             */
+            periodStart?: string;
+            /**
+             * Format: date
+             * @description Period end
+             */
+            periodEnd?: string;
+            /** @description Revenue recorded for this period */
+            readonly revenue?: number;
+            /** @description Operating costs recorded for this period */
+            readonly operatingCosts?: number;
+            /** @description Taxes to deduct */
+            taxes?: number;
+            /** @description Reserve to keep */
+            reserve?: number;
+            /** @description Amount reinvested into the project */
+            reinvestment?: number;
+            /** @description Distributable profit (floored at 0 in case of a loss) */
+            readonly distributableProfit?: number;
+            /**
+             * @description Status of the distribution
+             * @enum {string}
+             */
+            readonly status?: "PROPOSED" | "VALIDATED" | "REJECTED";
+            /**
+             * Format: int64
+             * @description AppUser id who proposed this distribution
+             */
+            readonly proposedBy?: number;
+            /**
+             * Format: date-time
+             * @description Proposal timestamp
+             */
+            readonly proposedAt?: string;
+            /**
+             * Format: int64
+             * @description AppUser id who validated or rejected this distribution
+             */
+            readonly validatedBy?: number;
+            /**
+             * Format: date-time
+             * @description Validation/rejection timestamp
+             */
+            readonly validatedAt?: string;
+            /** @description Per-investor breakdown */
+            lines?: components["schemas"]["ProfitDistributionLineDto"][];
+        };
+        /** @description One investor's share of a profit distribution */
+        ProfitDistributionLineDto: {
+            /**
+             * Format: int64
+             * @description Contribution this line is based on
+             */
+            contributionId?: number;
+            /**
+             * Format: int64
+             * @description Investor identifier
+             */
+            investorId?: number;
+            /** @description Units of Contribution (UC) at the time of this distribution */
+            unitsOfContribution?: number;
+            /** @description Share of the distributable profit (0-100) */
+            sharePercentage?: number;
+            /** @description Amount paid to this investor */
+            amount?: number;
+        };
+        /** @description Request to record a new investor contribution to a project */
+        CreateContributionRequest: {
+            /**
+             * Format: int64
+             * @description Investor identifier
+             * @example 1
+             */
+            investorId: number;
+            /**
+             * @description Contribution type; defaults to EQUITY if omitted
+             * @example EQUITY
+             * @enum {string}
+             */
+            type?: "EQUITY" | "IN_KIND" | "LOAN" | "TEMPORARY_INVESTMENT" | "LABOR";
+            /**
+             * @description Contributed/valued amount, must be positive
+             * @example 2000000
+             */
+            amount: number;
+            /**
+             * Format: date
+             * @description Entry date
+             * @example 2026-01-15
+             */
+            entryDate: string;
+            /**
+             * Format: int64
+             * @description Asset being contributed to capital; required for IN_KIND, ignored otherwise
+             */
+            assetId?: number;
+        };
+        /** @description An investor's contribution to a project, with its entry valuation */
+        ContributionDto: {
+            /**
+             * Format: int64
+             * @description Contribution identifier
+             * @example 1
+             */
+            readonly id?: number;
+            /**
+             * Format: int64
+             * @description Project this contribution belongs to
+             */
+            readonly projectId?: number;
+            /**
+             * Format: int64
+             * @description Investor identifier
+             * @example 1
+             */
+            investorId: number;
+            /**
+             * @description Contribution type
+             * @example EQUITY
+             * @enum {string}
+             */
+            type?: "EQUITY" | "IN_KIND" | "LOAN" | "TEMPORARY_INVESTMENT" | "LABOR";
+            /**
+             * @description Contributed amount
+             * @example 2000000
+             */
+            amount: number;
+            /**
+             * Format: date
+             * @description Entry date
+             * @example 2026-01-15
+             */
+            entryDate: string;
+            /** @description Project value immediately before this contribution */
+            readonly valuationBeforeEntry?: number;
+            /** @description Ownership percentage this contribution bought at entry (0-100); 0 for non-equity types (LOAN, TEMPORARY_INVESTMENT, LABOR) */
+            readonly sharePercentageAtEntry?: number;
+            /**
+             * Format: int64
+             * @description Asset contributed to capital, only set for IN_KIND contributions
+             */
+            assetId?: number;
+        };
+        /** @description Request to register a new asset for a project */
+        CreateAssetRequest: {
+            /**
+             * Format: int64
+             * @description Investor who owns this asset
+             */
+            ownerInvestorId: number;
+            /**
+             * @description Asset type
+             * @example BUILDING
+             * @enum {string}
+             */
+            type: "LAND" | "BUILDING" | "MACHINE" | "VEHICLE" | "ANIMAL" | "OTHER";
+            /**
+             * @description Free-text description
+             * @example Ferme + bâtiments + équipements
+             */
+            description?: string;
+            /**
+             * @description Documented initial value, must be positive
+             * @example 8000000
+             */
+            initialValue: number;
+        };
+        /** @description A physical good (land, farm, machine...) brought to or used by a project */
+        AssetDto: {
+            /**
+             * Format: int64
+             * @description Asset identifier
+             */
+            readonly id?: number;
+            /**
+             * Format: int64
+             * @description Project using this asset
+             */
+            readonly projectId?: number;
+            /**
+             * Format: int64
+             * @description Investor who owns this asset
+             */
+            ownerInvestorId: number;
+            /**
+             * @description Asset type
+             * @example BUILDING
+             * @enum {string}
+             */
+            type: "LAND" | "BUILDING" | "MACHINE" | "VEHICLE" | "ANIMAL" | "OTHER";
+            /**
+             * @description Free-text description
+             * @example Ferme + bâtiments + équipements
+             */
+            description?: string;
+            /**
+             * @description Documented initial value
+             * @example 8000000
+             */
+            initialValue: number;
+            /** @description Current value, if reassessed */
+            currentValue?: number;
+            /**
+             * @description Whether the asset is owned by its contributor (leasable) or transferred to the project's capital
+             * @enum {string}
+             */
+            readonly ownershipStatus?: "OWNED_BY_CONTRIBUTOR" | "TRANSFERRED_TO_PROJECT";
+            /**
+             * @description Settlement at project closure, only meaningful for TRANSFERRED_TO_PROJECT assets
+             * @enum {string}
+             */
+            readonly disposition?: "PENDING" | "SOLD" | "RETAINED_BY_INVESTOR";
+            /** @description Settlement amount, once disposed */
+            readonly disposalAmount?: number;
+            /**
+             * Format: int64
+             * @description Buyer investor id, if RETAINED_BY_INVESTOR
+             */
+            readonly disposalInvestorId?: number;
+        };
+        /** @description Terms under which a project pays rent for an asset it does not own */
+        LeaseDto: {
+            /**
+             * Format: int64
+             * @description Lease identifier
+             */
+            readonly id?: number;
+            /**
+             * Format: int64
+             * @description Leased asset
+             */
+            readonly assetId?: number;
+            /**
+             * @description Monthly rent
+             * @example 80000
+             */
+            monthlyRent: number;
+            /**
+             * Format: date
+             * @description Lease start date
+             */
+            startDate: string;
+            /**
+             * Format: date
+             * @description Lease end date, if ended
+             */
+            endDate?: string;
+            /**
+             * @description Status
+             * @enum {string}
+             */
+            readonly status?: "ACTIVE" | "ENDED";
+        };
+        /** @description Request to withdraw capital from a contribution */
+        RequestWithdrawalRequest: {
+            /** @description Amount to withdraw, must be positive and not exceed the remaining position */
+            amount: number;
+        };
+        /** @description Request to schedule a repayment for a LOAN or TEMPORARY_INVESTMENT contribution */
+        ScheduleRepaymentRequest: {
+            /**
+             * @description Principal to repay, must be positive
+             * @example 2000000
+             */
+            principalAmount: number;
+            /**
+             * @description Interest/compensation agreed
+             * @example 100000
+             */
+            interestAmount?: number;
+            /**
+             * Format: date
+             * @description Due date
+             */
+            dueDate: string;
+        };
+        /** @description Request to settle a capital asset once its project is closed (doc Q11) */
+        DisposeAssetRequest: {
+            /**
+             * @description SOLD (to a third party) or RETAINED_BY_INVESTOR (an investor buys it)
+             * @enum {string}
+             */
+            disposition: "PENDING" | "SOLD" | "RETAINED_BY_INVESTOR";
+            /**
+             * @description Sale/settlement proceeds credited to the project as income
+             * @example 8500000
+             */
+            amount?: number;
+            /**
+             * Format: int64
+             * @description Buyer investor id, required when disposition is RETAINED_BY_INVESTOR
+             */
+            buyerInvestorId?: number;
+        };
+        /** @description Request to lease an asset to a project */
+        CreateLeaseRequest: {
+            /**
+             * @description Monthly rent, must be positive
+             * @example 80000
+             */
+            monthlyRent: number;
+            /**
+             * Format: date
+             * @description Lease start date
+             */
+            startDate: string;
+        };
+        /** @description Hypothetical monthly usage cost of one asset, as if it were rented */
+        AssetUsageSimulationDto: {
+            /** Format: int64 */
+            assetId?: number;
+            /** @enum {string} */
+            type?: "LAND" | "BUILDING" | "MACHINE" | "VEHICLE" | "ANIMAL" | "OTHER";
+            value?: number;
+            hypotheticalMonthlyCost?: number;
+        };
+        /** @description "Everyone pays rent" simulation (doc §9.4): the hypothetical cost of using every asset as if it were rented, compared to the rent actually being paid today */
+        ProjectUsageSimulationDto: {
+            /** Format: int64 */
+            projectId?: number;
+            /** @description Monthly rate applied to each asset's value, as a percentage */
+            monthlyRatePercent?: number;
+            perAsset?: components["schemas"]["AssetUsageSimulationDto"][];
+            /** @description Sum of every asset's hypothetical monthly cost */
+            totalHypotheticalMonthlyCost?: number;
+            /** @description Sum of currently active leases' monthly rent (what is actually paid today) */
+            actualCurrentMonthlyRent?: number;
+        };
+        /** @description Return on investment for an investor's equity-like position in a project (doc §13) */
+        RoiDto: {
+            /**
+             * Format: int64
+             * @description Investor identifier
+             */
+            investorId?: number;
+            /**
+             * Format: int64
+             * @description Project identifier
+             */
+            projectId?: number;
+            /** @description Total EQUITY/IN_KIND capital invested */
+            totalInvested?: number;
+            /** @description Total received so far (profit distributions + validated withdrawals) */
+            totalReceived?: number;
+            /** @description ROI = (totalReceived - totalInvested) / totalInvested * 100 */
+            roiPercent?: number;
+            /** @description Annualized ROI: (1 + ROI)^(365/daysInvested) - 1, as a percentage */
+            annualizedRoiPercent?: number;
+            /**
+             * Format: int64
+             * @description Days since the earliest equity-like contribution
+             */
+            daysInvested?: number;
+        };
+        /** @description An investor's current ownership share of a project, based on Units of Contribution */
+        InvestorShareDto: {
+            /**
+             * Format: int64
+             * @description Investor identifier
+             */
+            investorId?: number;
+            /** @description Current ownership percentage (0-100) */
+            sharePercentage?: number;
+        };
+        /** @description Financial dashboard for a project (doc §19) */
+        ProjectFinancialSummaryDto: {
+            /**
+             * Format: int64
+             * @description Project identifier
+             */
+            projectId?: number;
+            /** @description Current estimated project value (equity book value, net of withdrawals) */
+            currentProjectValue?: number;
+            /** @description Total EQUITY/IN_KIND capital ever contributed (gross, before withdrawals) */
+            totalCapitalInvested?: number;
+            /** @description Outstanding LOAN/TEMPORARY_INVESTMENT principal still to be repaid */
+            remainingTemporaryCapital?: number;
+            /** @description Documented value of assets still owned by their contributors (leasable, not capital) */
+            assetsValueOwnedByContributors?: number;
+            /** @description Sum of all currently active leases' monthly rent */
+            currentMonthlyRent?: number;
+            /** @description All-time revenue (INCOME operations) */
+            totalRevenue?: number;
+            /** @description All-time expenses (EXPENSE operations) */
+            totalExpenses?: number;
+            /** @description totalRevenue - totalExpenses, all-time */
+            netProfitAllTime?: number;
+            /** @description Cumulative reserve set aside across all validated distributions */
+            totalReserveAccumulated?: number;
+            /** @description Total amount already paid out across all validated distributions */
+            totalDistributedToDate?: number;
+            /** @description Current ownership breakdown across equity-like investors */
+            currentShares?: components["schemas"]["InvestorShareDto"][];
         };
     };
     responses: never;
@@ -537,6 +1639,47 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    updateRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Role updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppUserDto"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Caller is not an Admin */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     findById: {
         parameters: {
             query?: never;
@@ -1089,6 +2232,124 @@ export interface operations {
             };
         };
     };
+    listGlobalDefaults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of parameters */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FinancialParameterDto"][];
+                };
+            };
+        };
+    };
+    setParameter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetFinancialParameterRequest"];
+            };
+        };
+        responses: {
+            /** @description Parameter updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FinancialParameterDto"];
+                };
+            };
+        };
+    };
+    validate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Withdrawal identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawal validated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WithdrawalDto"];
+                };
+            };
+            /** @description Withdrawal not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already decided, blocked, or same person as the requester */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Withdrawal identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawal rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WithdrawalDto"];
+                };
+            };
+            /** @description Withdrawal not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already decided, or same person as the requester */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     findAll: {
         parameters: {
             query?: never;
@@ -1140,6 +2401,43 @@ export interface operations {
             };
         };
     };
+    markPaid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Repayment identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Repayment paid */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RepaymentDto"];
+                };
+            };
+            /** @description Repayment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already paid */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     findAll_1: {
         parameters: {
             query?: never;
@@ -1184,6 +2482,242 @@ export interface operations {
             };
             /** @description Invalid input */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    findByProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of distributions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfitDistributionDto"][];
+                };
+            };
+        };
+    };
+    propose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeDistributionRequest"];
+            };
+        };
+        responses: {
+            /** @description Distribution proposed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfitDistributionDto"];
+                };
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request or caller not authorized */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    findByProject_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of contributions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ContributionDto"][];
+                };
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContributionRequest"];
+            };
+        };
+        responses: {
+            /** @description Contribution recorded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ContributionDto"];
+                };
+            };
+            /** @description Project or investor not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid contribution (e.g. non-positive amount) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    findByProject_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of assets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssetDto"][];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description Asset registered */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssetDto"];
+                };
+            };
+            /** @description Project or investor not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid value */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Project closed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProjectDto"];
+                };
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already closed */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1293,6 +2827,80 @@ export interface operations {
             };
         };
     };
+    postRent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Lease identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rent posted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LeaseDto"];
+                };
+            };
+            /** @description Lease not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Lease is ended */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    end: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Lease identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lease ended */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LeaseDto"];
+                };
+            };
+            /** @description Lease not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Lease already ended */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     findAll_4: {
         parameters: {
             query?: never;
@@ -1337,6 +2945,185 @@ export interface operations {
             };
             /** @description Invalid input */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    validate_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Distribution identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distribution validated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfitDistributionDto"];
+                };
+            };
+            /** @description Distribution not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already decided, or same person as the proposer */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reject_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Distribution identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distribution rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfitDistributionDto"];
+                };
+            };
+            /** @description Distribution not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already decided, or same person as the proposer */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Contribution identifier */
+                contributionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestWithdrawalRequest"];
+            };
+        };
+        responses: {
+            /** @description Withdrawal requested (may be BLOCKED if the project cannot absorb it) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WithdrawalDto"];
+                };
+            };
+            /** @description Contribution not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid amount or caller not authorized */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    findByContribution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Contribution identifier */
+                contributionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of repayments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RepaymentDto"][];
+                };
+            };
+        };
+    };
+    schedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Contribution identifier */
+                contributionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleRepaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Repayment scheduled */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RepaymentDto"];
+                };
+            };
+            /** @description Contribution not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request or contribution is equity-like */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1395,6 +3182,325 @@ export interface operations {
             };
         };
     };
+    dispose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Asset identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisposeAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description Asset settled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssetDto"];
+                };
+            };
+            /** @description Asset or project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Project not closed, asset not contributed to capital, or already settled */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    findByAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Asset identifier */
+                assetId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of leases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LeaseDto"][];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Asset identifier */
+                assetId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLeaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Lease created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LeaseDto"];
+                };
+            };
+            /** @description Asset not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Asset already contributed to capital or already leased */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    findAll_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppUserDto"][];
+                };
+            };
+        };
+    };
+    findByProject_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of withdrawals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WithdrawalDto"][];
+                };
+            };
+        };
+    };
+    simulate: {
+        parameters: {
+            query?: {
+                /** @description Monthly rate to apply to each asset's value, as a percentage (default 1.0) */
+                monthlyRatePercent?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Simulation computed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProjectUsageSimulationDto"];
+                };
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    compute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+                /** @description Investor identifier */
+                investorId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ROI computed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoiDto"];
+                };
+            };
+            /** @description No equity-like contribution found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    compute_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summary computed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProjectFinancialSummaryDto"];
+                };
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    findByProject_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project identifier */
+                projectId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of operations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OperationDto"][];
+                };
+            };
+        };
+    };
+    findByInvestor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Investor identifier */
+                investorId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of contributions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ContributionDto"][];
+                };
+            };
+        };
+    };
+    findById_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Distribution identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distribution found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfitDistributionDto"];
+                };
+            };
+            /** @description Distribution not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -1414,6 +3520,36 @@ export interface operations {
                         [key: string]: Record<string, never>;
                     };
                 };
+            };
+        };
+    };
+    findById_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Asset identifier */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Asset found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssetDto"];
+                };
+            };
+            /** @description Asset not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
