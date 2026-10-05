@@ -43,6 +43,7 @@ public class ProjectMapper {
                 project.getName(),
                 project.getProjectType(),
                 project.getLivestockType(),
+                project.getStatus(),
                 resources,
                 capital,
                 statistics,
@@ -73,6 +74,9 @@ public class ProjectMapper {
         project.setName(dto.name());
         project.setProjectType(dto.projectType());
         project.setLivestockType(dto.livestockType());
+        if (dto.status() != null) {
+            project.setStatus(dto.status());
+        }
 
         if (dto.resources() != null) {
             ProjectResourcesDto r = dto.resources();

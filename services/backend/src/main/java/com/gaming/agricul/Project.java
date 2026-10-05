@@ -46,6 +46,10 @@ public class Project {
     @Column(name = "livestock_type")
     private LivestockType livestockType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProjectStatus status = ProjectStatus.ACTIVE;
+
     @Embedded
     private ProjectResources resources;
 
