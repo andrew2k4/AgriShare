@@ -4,6 +4,7 @@ import com.gaming.agricul.Project;
 import com.gaming.agricul.dto.CreateProjectRequest;
 import com.gaming.agricul.dto.ProjectDto;
 import com.gaming.agricul.mapper.ProjectMapper;
+import com.gaming.agricul.service.ProjectClosureService;
 import com.gaming.agricul.service.ProjectService;
 import com.google.firebase.auth.FirebaseToken;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +39,7 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final ProjectMapper projectMapper;
+    private final ProjectClosureService projectClosureService;
 
     @GetMapping
     @Operation(summary = "Retrieve all projects owned by the authenticated user",
@@ -87,6 +89,19 @@ public class ProjectController {
             @Parameter(description = "Project identifier", required = true) @PathVariable Long id,
             @RequestBody ProjectDto dto) {
         return ResponseEntity.ok(projectMapper.toDto(projectService.update(id, projectMapper.toEntity(dto))));
+    }
+
+    @PostMapping("/{id}/close")
+    @Operation(summary = "Close a project; its capital assets must then be settled individually (see Assets)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Project closed",
+                    content = @Content(schema = @Schema(implementation = ProjectDto.class))),
+            @ApiResponse(responseCode = "404", description = "Project not found", content = @Content),
+            @ApiResponse(responseCode = "409", description = "Already closed", content = @Content)
+    })
+    public ResponseEntity<ProjectDto> close(
+            @Parameter(description = "Project identifier", required = true) @PathVariable Long id) {
+        return ResponseEntity.ok(projectMapper.toDto(projectClosureService.close(id)));
     }
 
     @DeleteMapping("/{id}")
