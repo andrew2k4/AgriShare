@@ -34,8 +34,5 @@ public record ProjectDto(
         ProjectStatisticsDto statistics,
 
         @Schema(description = "Recorded production days")
-        List<ProductionDayDto> productions,
-
-        @Schema(description = "Financial operations of the project")
-        List<OperationDto> operations
+        List<ProductionDayDto> productions
 ) {}

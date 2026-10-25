@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 public class ProjectMapper {
 
     private final ProductionDayMapper productionDayMapper;
-    private final OperationMapper operationMapper;
 
     public ProjectDto toDto(Project project) {
         ProjectResourcesDto resources = null;
@@ -47,8 +46,7 @@ public class ProjectMapper {
                 resources,
                 capital,
                 statistics,
-                project.getProductions().stream().map(productionDayMapper::toDto).toList(),
-                project.getOperations().stream().map(operationMapper::toDto).toList()
+                project.getProductions().stream().map(productionDayMapper::toDto).toList()
         );
     }
 
@@ -91,9 +89,6 @@ public class ProjectMapper {
 
         if (dto.productions() != null) {
             project.setProductions(dto.productions().stream().map(productionDayMapper::toEntity).toList());
-        }
-        if (dto.operations() != null) {
-            project.setOperations(dto.operations().stream().map(operationMapper::toEntity).toList());
         }
 
         return project;

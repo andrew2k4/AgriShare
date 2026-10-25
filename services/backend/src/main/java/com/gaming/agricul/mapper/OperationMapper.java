@@ -10,6 +10,7 @@ public class OperationMapper {
     public OperationDto toDto(Operation operation) {
         return new OperationDto(
                 operation.getId(),
+                operation.getProjectId(),
                 operation.getLabel(),
                 operation.getDate(),
                 operation.getAmount(),
@@ -20,6 +21,7 @@ public class OperationMapper {
     public Operation toEntity(OperationDto dto) {
         return new Operation(
                 dto.id(),
+                dto.projectId(),
                 dto.label(),
                 dto.date(),
                 dto.amount(),

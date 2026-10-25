@@ -27,6 +27,9 @@ public class Operation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "project_id")
+    private Long projectId;
+
     private String label;
     private LocalDate date;
     private double amount;

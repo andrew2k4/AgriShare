@@ -42,6 +42,15 @@ public class OperationController {
         return ResponseEntity.ok(operationService.findAll().stream().map(operationMapper::toDto).toList());
     }
 
+    @GetMapping("/by-project/{projectId}")
+    @Operation(summary = "Retrieve all operations recorded for a given project")
+    @ApiResponse(responseCode = "200", description = "List of operations",
+            content = @Content(array = @ArraySchema(schema = @Schema(implementation = OperationDto.class))))
+    public ResponseEntity<List<OperationDto>> findByProject(
+            @Parameter(description = "Project identifier", required = true) @PathVariable Long projectId) {
+        return ResponseEntity.ok(operationService.findByProject(projectId).stream().map(operationMapper::toDto).toList());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Find an operation by id")
     @ApiResponses({
