@@ -1,62 +1,189 @@
-
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  PiggyBank, 
-  RefreshCw, 
-  HandCoins, 
-  History, 
-  TrendingUp, 
-  Clock, 
-  Info,
-  Calendar,
-  Calculator,
-  ArrowRight
-} from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MOCK_INVESTMENTS, MOCK_TRANSACTIONS } from "@/lib/mock-data";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { HandCoins, History, TrendingUp, RefreshCcw, Check, X, LineChart, Gauge } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { api } from "@/api";
+import type { components } from "@/api";
+import { toast } from "@/hooks/use-toast";
+
+type ProjectDto = components["schemas"]["ProjectDto"];
+type InvestorDto = components["schemas"]["InvestorDto"];
+type ProfitDistributionDto = components["schemas"]["ProfitDistributionDto"];
+type ProjectFinancialSummaryDto = components["schemas"]["ProjectFinancialSummaryDto"];
+type RoiDto = components["schemas"]["RoiDto"];
+
+const STATUS_LABELS: Record<string, string> = {
+  PROPOSED: "En attente de validation",
+  VALIDATED: "Validée",
+  REJECTED: "Rejetée",
+};
 
 export default function ProfitsPage() {
-  const [simulationMonths, setSimulationMonths] = useState("12");
-  
-  const totalIncome = MOCK_TRANSACTIONS
-    .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + t.amount, 0);
-  
-  const totalExpense = MOCK_TRANSACTIONS
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const [projects, setProjects] = useState<ProjectDto[]>([]);
+  const [investors, setInvestors] = useState<InvestorDto[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [distributions, setDistributions] = useState<ProfitDistributionDto[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+  const [proposing, setProposing] = useState(false);
+  const [actingOnId, setActingOnId] = useState<number | null>(null);
 
-  const netProfit = totalIncome - totalExpense;
-  const totalInvested = MOCK_INVESTMENTS.reduce((sum, inv) => sum + inv.amount, 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const [form, setForm] = useState({
+    periodStart: today,
+    periodEnd: today,
+    taxes: "0",
+    reserve: "0",
+    reinvestment: "0",
+  });
 
-  // Group stats by user with time factors
-  const userStats = useMemo(() => {
-    return MOCK_INVESTMENTS.reduce((acc, inv) => {
-      if (!acc[inv.userId]) {
-        acc[inv.userId] = { 
-          name: inv.userName, 
-          total: 0, 
-          firstDate: inv.date,
-          investments: [] 
-        };
-      }
-      acc[inv.userId].total += inv.amount;
-      acc[inv.userId].investments.push(inv);
-      if (new Date(inv.date) < new Date(acc[inv.userId].firstDate)) {
-        acc[inv.userId].firstDate = inv.date;
-      }
-      return acc;
-    }, {} as Record<string, { name: string, total: number, firstDate: string, investments: any[] }>);
+  const canManageDistributions = role === "ADMIN" || role === "MANAGER";
+
+  const [summary, setSummary] = useState<ProjectFinancialSummaryDto | null>(null);
+  const [roiInvestorId, setRoiInvestorId] = useState<string>("");
+  const [roi, setRoi] = useState<RoiDto | null>(null);
+  const [roiLoading, setRoiLoading] = useState(false);
+
+  const fetchProjects = async () => {
+    const { data } = await api.projects.getAll();
+    if (data) setProjects(data);
+  };
+
+  const fetchInvestors = async () => {
+    const { data } = await api.investors.getAll();
+    if (data) setInvestors(data);
+  };
+
+  const fetchRole = async () => {
+    const { data } = await api.auth.me();
+    if (data && "role" in data) setRole(String(data.role));
+  };
+
+  const fetchDistributions = async (projectId: string) => {
+    if (!projectId) {
+      setDistributions([]);
+      return;
+    }
+    setLoading(true);
+    const { data, error } = await api.distributions.getByProject(Number(projectId));
+    setLoading(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de charger les distributions." });
+      return;
+    }
+    setDistributions(data ?? []);
+  };
+
+  useEffect(() => {
+    fetchProjects();
+    fetchInvestors();
+    fetchRole();
   }, []);
+
+  const fetchSummary = async (projectId: string) => {
+    if (!projectId) {
+      setSummary(null);
+      return;
+    }
+    const { data, error } = await api.projects.financialSummary(Number(projectId));
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de charger la vue financière." });
+      return;
+    }
+    setSummary(data ?? null);
+  };
+
+  useEffect(() => {
+    fetchDistributions(selectedProjectId);
+    fetchSummary(selectedProjectId);
+    setRoi(null);
+    setRoiInvestorId("");
+  }, [selectedProjectId]);
+
+  const investorName = (investorId: number) =>
+    investors.find((i) => i.id === investorId)?.fullName ?? `Investisseur #${investorId}`;
+
+  const handleLookupRoi = async () => {
+    if (!selectedProjectId || !roiInvestorId) return;
+    setRoiLoading(true);
+    const { data, error } = await api.projects.roi(Number(selectedProjectId), Number(roiInvestorId));
+    setRoiLoading(false);
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Aucun apport en capital (associé/apport en nature) trouvé pour cet investisseur sur ce projet.",
+      });
+      setRoi(null);
+      return;
+    }
+    setRoi(data ?? null);
+  };
+
+  const handlePropose = async () => {
+    if (!selectedProjectId) return;
+    setProposing(true);
+    const { error } = await api.distributions.propose(Number(selectedProjectId), {
+      periodStart: form.periodStart,
+      periodEnd: form.periodEnd,
+      taxes: Number(form.taxes),
+      reserve: Number(form.reserve),
+      reinvestment: Number(form.reinvestment),
+    });
+    setProposing(false);
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de proposer cette distribution (vérifie tes droits et les dates).",
+      });
+      return;
+    }
+    toast({ title: "Distribution proposée", description: "En attente de validation par un second responsable." });
+    fetchDistributions(selectedProjectId);
+  };
+
+  const handleValidate = async (id: number) => {
+    setActingOnId(id);
+    const { error } = await api.distributions.validate(id);
+    setActingOnId(null);
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Validation impossible",
+        description: "Un responsable différent de celui qui a proposé la distribution doit la valider.",
+      });
+      return;
+    }
+    toast({ title: "Distribution validée" });
+    fetchDistributions(selectedProjectId);
+  };
+
+  const handleReject = async (id: number) => {
+    setActingOnId(id);
+    const { error } = await api.distributions.reject(id);
+    setActingOnId(null);
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de rejeter cette distribution." });
+      return;
+    }
+    toast({ title: "Distribution rejetée" });
+    fetchDistributions(selectedProjectId);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -64,190 +191,319 @@ export default function ProfitsPage() {
       <main className="container mx-auto px-4 py-8">
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-primary">Distribution & Simulation</h1>
-            <p className="text-muted-foreground">Calcul des gains tenant compte de l'apport et de la durée d'immobilisation.</p>
+            <h1 className="text-3xl font-bold text-primary">Distribution des Bénéfices</h1>
+            <p className="text-muted-foreground">
+              Calcul automatique basé sur les unités de contribution de chaque investisseur.
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="border-primary text-primary">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Réinvestir
-            </Button>
-            <Button className="bg-primary">
-              <HandCoins className="mr-2 h-4 w-4" />
-              Distribuer
-            </Button>
+          <div className="w-full md:w-64">
+            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choisir un projet" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </header>
 
-        <div className="grid gap-6 md:grid-cols-3 mb-8">
-          <Card className="bg-primary text-primary-foreground">
-            <CardHeader className="pb-2">
-              <CardDescription className="text-primary-foreground/80">Bénéfice Net Actuel</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{netProfit.toLocaleString()} FCFA</div>
-              <p className="text-xs mt-1 opacity-80 italic">Cumulé depuis le lancement de l'activité.</p>
+        {!selectedProjectId ? (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              Choisis un projet pour consulter ou proposer une distribution de bénéfices.
             </CardContent>
           </Card>
-
-          <Card className="md:col-span-2">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
+        ) : (
+          <>
+            {summary && (
+              <Card className="mb-8">
+                <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    Répartition en Temps Réel
+                    <Gauge className="h-5 w-5 text-primary" />
+                    Vue financière du projet
                   </CardTitle>
-                  <CardDescription>Parts de dividendes basées sur le capital et l'ancienneté.</CardDescription>
-                </div>
-                <Badge variant="outline" className="bg-primary/5">Cycle: Poules (24 mois)</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-               <div className="grid sm:grid-cols-2 gap-4">
-                 {Object.entries(userStats).map(([id, data]) => {
-                   const share = data.total / totalInvested;
-                   const earnings = netProfit * share;
-                   const monthsActive = Math.floor((new Date().getTime() - new Date(data.firstDate).getTime()) / (1000 * 60 * 60 * 24 * 30.44));
-                   
-                   return (
-                     <div key={id} className="p-4 rounded-xl border bg-white flex flex-col gap-2 hover:shadow-sm transition-shadow">
-                        <div className="flex justify-between items-start">
-                           <div>
-                             <span className="text-sm font-bold block">{data.name}</span>
-                             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                               <Clock className="h-3 w-3" /> Actif depuis {monthsActive} mois
-                             </span>
-                           </div>
-                           <Badge className="bg-primary">{(share * 100).toFixed(1)}%</Badge>
-                        </div>
-                        
-                        <div className="mt-2">
-                           <div className="flex justify-between text-[11px] mb-1">
-                             <span className="text-muted-foreground">Gain accumulé</span>
-                             <span className="font-bold">{earnings.toLocaleString()} F</span>
-                           </div>
-                           <Progress value={share * 100} className="h-1.5" />
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t">
-                           <div className="text-center">
-                             <p className="text-[9px] uppercase text-muted-foreground font-bold">Investi</p>
-                             <p className="text-xs font-bold">{data.total.toLocaleString()} F</p>
-                           </div>
-                           <div className="text-center border-l">
-                             <p className="text-[9px] uppercase text-muted-foreground font-bold">ROI Estimé</p>
-                             <p className="text-xs font-bold text-primary">{((earnings/data.total)*100).toFixed(1)}%</p>
-                           </div>
-                        </div>
-                     </div>
-                   );
-                 })}
-               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-3 mb-8">
-           <Card className="lg:col-span-1 border-accent/20 bg-accent/5">
-              <CardHeader>
-                <CardTitle className="text-md flex items-center gap-2">
-                  <Calculator className="h-5 w-5 text-accent-foreground" />
-                  Simulateur de Projection
-                </CardTitle>
-                <CardDescription>Estimez les retours futurs selon le cycle de ponte.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Durée totale visée (mois)</Label>
-                  <Input 
-                    type="number" 
-                    value={simulationMonths} 
-                    onChange={(e) => setSimulationMonths(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-                
-                <div className="p-3 bg-white rounded-lg border text-xs space-y-2">
-                  <div className="flex items-start gap-2 text-muted-foreground">
-                    <Info className="h-4 w-4 shrink-0 text-accent" />
-                    <p>Le cycle standard des poules pondeuses au Cameroun prévoit une ponte optimale dès le 6ème mois.</p>
-                  </div>
-                  <div className="pt-2 border-t space-y-1">
-                    <div className="flex justify-between">
-                      <span>Mois 0-5</span>
-                      <span className="text-destructive font-bold">Croissance (Charges)</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="p-3 rounded-lg border bg-primary/5">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Valeur du projet</div>
+                      <div className="text-lg font-bold">{summary.currentProjectValue?.toLocaleString()} FCFA</div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Mois 6-8</span>
-                      <span className="text-accent-foreground font-bold">Début Ponte</span>
+                    <div className="p-3 rounded-lg border">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Capital investi (cumulé)</div>
+                      <div className="text-lg font-bold">{summary.totalCapitalInvested?.toLocaleString()} FCFA</div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Mois 9+</span>
-                      <span className="text-primary font-bold">Pleine Production</span>
+                    <div className="p-3 rounded-lg border">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Financement temporaire restant</div>
+                      <div className="text-lg font-bold">{summary.remainingTemporaryCapital?.toLocaleString()} FCFA</div>
+                    </div>
+                    <div className="p-3 rounded-lg border">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Actifs loués (propriété tiers)</div>
+                      <div className="text-lg font-bold">{summary.assetsValueOwnedByContributors?.toLocaleString()} FCFA</div>
+                    </div>
+                    <div className="p-3 rounded-lg border">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Loyers mensuels actuels</div>
+                      <div className="text-lg font-bold">{summary.currentMonthlyRent?.toLocaleString()} FCFA</div>
+                    </div>
+                    <div className="p-3 rounded-lg border">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Chiffre d'affaires (total)</div>
+                      <div className="text-lg font-bold">{summary.totalRevenue?.toLocaleString()} FCFA</div>
+                    </div>
+                    <div className="p-3 rounded-lg border">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Dépenses (total)</div>
+                      <div className="text-lg font-bold">{summary.totalExpenses?.toLocaleString()} FCFA</div>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-primary/5">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Bénéfice/perte (total)</div>
+                      <div className="text-lg font-bold">{summary.netProfitAllTime?.toLocaleString()} FCFA</div>
+                    </div>
+                    <div className="p-3 rounded-lg border">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Réserve cumulée</div>
+                      <div className="text-lg font-bold">{summary.totalReserveAccumulated?.toLocaleString()} FCFA</div>
+                    </div>
+                    <div className="p-3 rounded-lg border">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Déjà distribué</div>
+                      <div className="text-lg font-bold">{summary.totalDistributedToDate?.toLocaleString()} FCFA</div>
                     </div>
                   </div>
-                </div>
 
-                <div className="pt-2">
-                   <p className="text-xs font-medium mb-2">Projection à {simulationMonths} mois :</p>
-                   <div className="p-3 bg-primary text-primary-foreground rounded-lg text-center">
-                      <p className="text-lg font-bold">~ 4,500,000 FCFA</p>
-                      <p className="text-[10px] opacity-80">Bénéfice total estimé du projet</p>
-                   </div>
-                </div>
-              </CardContent>
-           </Card>
+                  {summary.currentShares && summary.currentShares.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-2">Parts actuelles</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {summary.currentShares.map((s) => (
+                          <Badge key={s.investorId} variant="outline" className="bg-primary/5 text-primary">
+                            {investorName(s.investorId ?? 0)} — {s.sharePercentage}%
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-           <Card className="lg:col-span-2">
+                  <div className="mt-6 pt-4 border-t">
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                      <LineChart className="h-4 w-4" />
+                      ROI par investisseur
+                    </h3>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="w-56 space-y-2">
+                        <Label>Investisseur</Label>
+                        <Select value={roiInvestorId} onValueChange={setRoiInvestorId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choisir un investisseur" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {investors.map((inv) => (
+                              <SelectItem key={inv.id} value={String(inv.id)}>
+                                {inv.fullName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button variant="outline" disabled={!roiInvestorId || roiLoading} onClick={handleLookupRoi}>
+                        {roiLoading && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}
+                        Calculer le ROI
+                      </Button>
+                      {roi && (
+                        <div className="flex gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">ROI : </span>
+                            <span className="font-bold">{roi.roiPercent}%</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">ROI annualisé : </span>
+                            <span className="font-bold">{roi.annualizedRoiPercent}%</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Depuis : </span>
+                            <span className="font-bold">{roi.daysInvested} jours</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {canManageDistributions && (
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <HandCoins className="h-5 w-5 text-primary" />
+                    Proposer une distribution
+                  </CardTitle>
+                  <CardDescription>
+                    Le bénéfice distribuable est calculé automatiquement à partir des opérations de la période
+                    (revenus − charges − taxes − réserve − réinvestissement), et réparti selon les unités de
+                    contribution de chaque investisseur.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-5">
+                    <div className="space-y-2">
+                      <Label>Début de période</Label>
+                      <Input
+                        type="date"
+                        value={form.periodStart}
+                        onChange={(e) => setForm({ ...form, periodStart: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fin de période</Label>
+                      <Input
+                        type="date"
+                        value={form.periodEnd}
+                        onChange={(e) => setForm({ ...form, periodEnd: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Taxes</Label>
+                      <Input
+                        type="number"
+                        value={form.taxes}
+                        onChange={(e) => setForm({ ...form, taxes: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Réserve</Label>
+                      <Input
+                        type="number"
+                        value={form.reserve}
+                        onChange={(e) => setForm({ ...form, reserve: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Réinvestissement</Label>
+                      <Input
+                        type="number"
+                        value={form.reinvestment}
+                        onChange={(e) => setForm({ ...form, reinvestment: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <Button className="bg-primary" disabled={proposing} onClick={handlePropose}>
+                    {proposing && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}
+                    Proposer la distribution
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <History className="h-5 w-5 text-primary" />
-                  Historique & Détails des Apports
+                  Historique des distributions
                 </CardTitle>
-                <CardDescription>Détail chronologique des investissements par partenaire.</CardDescription>
+                <CardDescription>
+                  Chaque distribution doit être validée par un responsable différent de celui qui l'a proposée.
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Investisseur</TableHead>
-                      <TableHead>Date d'entrée</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
-                      <TableHead className="text-center">Impact Gains</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {MOCK_INVESTMENTS.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((inv) => {
-                      const ageInMonths = Math.floor((new Date().getTime() - new Date(inv.date).getTime()) / (1000 * 60 * 60 * 24 * 30.44));
-                      const isProductive = ageInMonths >= 6;
-                      
-                      return (
-                        <TableRow key={inv.id}>
-                          <TableCell className="font-medium">{inv.userName}</TableCell>
-                          <TableCell className="text-xs">
-                            {new Date(inv.date).toLocaleDateString('fr-FR')}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-[10px]">FINANCIER</Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-bold">{inv.amount.toLocaleString()} F</TableCell>
-                          <TableCell className="text-center">
-                            {isProductive ? (
-                              <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">En production</Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-[10px]">Phase croissance</Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+              <CardContent className="space-y-6">
+                {loading ? (
+                  <p className="text-center text-muted-foreground py-8">Chargement...</p>
+                ) : distributions.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Aucune distribution proposée pour ce projet.
+                  </p>
+                ) : (
+                  distributions.map((d) => (
+                    <div key={d.id} className="rounded-lg border p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="font-medium flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 text-primary" />
+                            {d.periodStart} → {d.periodEnd}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Revenus {(d.revenue ?? 0).toLocaleString()} FCFA · Charges{" "}
+                            {(d.operatingCosts ?? 0).toLocaleString()} FCFA
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            variant="outline"
+                            className={
+                              d.status === "VALIDATED"
+                                ? "bg-primary/10 text-primary"
+                                : d.status === "REJECTED"
+                                ? "bg-destructive/10 text-destructive"
+                                : "bg-accent/10 text-accent-foreground"
+                            }
+                          >
+                            {STATUS_LABELS[d.status ?? ""] ?? d.status}
+                          </Badge>
+                          <span className="text-lg font-bold text-primary">
+                            {(d.distributableProfit ?? 0).toLocaleString()} FCFA
+                          </span>
+                        </div>
+                      </div>
+
+                      {d.status === "PROPOSED" && canManageDistributions && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-primary"
+                            disabled={actingOnId === d.id}
+                            onClick={() => d.id && handleValidate(d.id)}
+                          >
+                            <Check className="mr-1 h-4 w-4" />
+                            Valider
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={actingOnId === d.id}
+                            onClick={() => d.id && handleReject(d.id)}
+                          >
+                            <X className="mr-1 h-4 w-4" />
+                            Rejeter
+                          </Button>
+                        </div>
+                      )}
+
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Investisseur</TableHead>
+                            <TableHead className="text-right">Part</TableHead>
+                            <TableHead className="text-right">Montant</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(d.lines ?? []).length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center text-muted-foreground">
+                                Aucun investisseur actif sur ce projet.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            (d.lines ?? []).map((line, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell>{investorName(line.investorId ?? 0)}</TableCell>
+                                <TableCell className="text-right">{line.sharePercentage}%</TableCell>
+                                <TableCell className="text-right font-bold">
+                                  {(line.amount ?? 0).toLocaleString()} FCFA
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ))
+                )}
               </CardContent>
-           </Card>
-        </div>
+            </Card>
+          </>
+        )}
       </main>
     </div>
   );

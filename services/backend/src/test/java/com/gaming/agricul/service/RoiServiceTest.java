@@ -74,7 +74,7 @@ class RoiServiceTest {
         ProfitDistributionLine line = new ProfitDistributionLine(1L, 10L, BigDecimal.ONE, new BigDecimal("100"), new BigDecimal("1200000"));
         ProfitDistribution distribution = new ProfitDistribution(1L, 1L, LocalDate.now().minusDays(30), LocalDate.now(),
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("1200000"),
-                DistributionStatus.VALIDATED, 1L, java.time.Instant.now(), 2L, java.time.Instant.now(), List.of(line));
+                DistributionStatus.VALIDATED, 1L, java.time.Instant.now(), 2L, java.time.Instant.now(), List.of(line), null);
         when(profitDistributionRepository.findByProjectId(1L)).thenReturn(List.of(distribution));
         when(withdrawalRepository.findByProjectIdAndInvestorId(1L, 10L)).thenReturn(List.of());
 
@@ -95,9 +95,9 @@ class RoiServiceTest {
 
         Withdrawal validated = new Withdrawal(1L, 1L, 1L, 10L, new BigDecimal("100000"),
                 BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("100000"), WithdrawalStatus.VALIDATED, null,
-                2L, java.time.Instant.now(), 3L, java.time.Instant.now());
+                2L, java.time.Instant.now(), 3L, java.time.Instant.now(), null);
         Withdrawal rejected = new Withdrawal(2L, 1L, 1L, 10L, new BigDecimal("50000"),
-                null, null, null, WithdrawalStatus.REJECTED, null, 2L, java.time.Instant.now(), 3L, java.time.Instant.now());
+                null, null, null, WithdrawalStatus.REJECTED, null, 2L, java.time.Instant.now(), 3L, java.time.Instant.now(), null);
         when(withdrawalRepository.findByProjectIdAndInvestorId(1L, 10L)).thenReturn(List.of(validated, rejected));
 
         RoiDto roi = roiService.compute(1L, 10L);

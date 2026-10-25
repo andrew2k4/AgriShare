@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -74,4 +75,8 @@ public class Withdrawal {
 
     @Column(name = "validated_at")
     private Instant validatedAt;
+
+    /** Optimistic lock: prevents a validate/reject race from silently overwriting the other. */
+    @Version
+    private Long version;
 }

@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -49,4 +50,8 @@ public class Lease {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LeaseStatus status;
+
+    /** Optimistic lock, paired with a partial unique index so an asset can never end up with two active leases. */
+    @Version
+    private Long version;
 }

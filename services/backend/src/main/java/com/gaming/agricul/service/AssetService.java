@@ -54,7 +54,7 @@ public class AssetService {
         Asset asset = new Asset(
                 null, projectId, request.ownerInvestorId(), request.type(), request.description(),
                 request.initialValue(), request.initialValue(), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR,
-                AssetDisposition.PENDING, null, null
+                AssetDisposition.PENDING, null, null, null
         );
         return assetRepository.save(asset);
     }

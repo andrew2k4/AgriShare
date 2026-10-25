@@ -155,6 +155,6 @@ class WithdrawalServiceTest {
     private Withdrawal requestedWithdrawal(Long requestedBy, BigDecimal amount) {
         return new Withdrawal(200L, 1L, 100L, 10L, amount,
                 null, null, null, WithdrawalStatus.REQUESTED, null,
-                requestedBy, Instant.now(), null, null);
+                requestedBy, Instant.now(), null, null, null);
     }
 }

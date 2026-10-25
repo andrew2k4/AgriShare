@@ -117,9 +117,9 @@ class ProjectFinancialSummaryServiceTest {
     @Test
     void compute_sumsAssetsOwnedByContributorsOnly() {
         Asset owned = new Asset(1L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null, null);
         Asset transferred = new Asset(2L, 1L, 20L, AssetType.MACHINE, "Tracteur", new BigDecimal("3000000"),
-                new BigDecimal("3000000"), AssetOwnershipStatus.TRANSFERRED_TO_PROJECT, AssetDisposition.PENDING, null, null);
+                new BigDecimal("3000000"), AssetOwnershipStatus.TRANSFERRED_TO_PROJECT, AssetDisposition.PENDING, null, null, null);
         when(assetRepository.findByProjectId(1L)).thenReturn(List.of(owned, transferred));
         when(leaseRepository.findFirstByAssetIdAndStatus(any(), any())).thenReturn(Optional.empty());
 
@@ -131,10 +131,10 @@ class ProjectFinancialSummaryServiceTest {
     @Test
     void compute_sumsActiveLeasesMonthlyRent() {
         Asset owned = new Asset(1L, 1L, 10L, AssetType.BUILDING, "Ferme", new BigDecimal("8000000"),
-                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null);
+                new BigDecimal("8000000"), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR, AssetDisposition.PENDING, null, null, null);
         when(assetRepository.findByProjectId(1L)).thenReturn(List.of(owned));
         when(leaseRepository.findFirstByAssetIdAndStatus(1L, LeaseStatus.ACTIVE))
-                .thenReturn(Optional.of(new Lease(1L, 1L, new BigDecimal("80000"), LocalDate.now(), null, LeaseStatus.ACTIVE)));
+                .thenReturn(Optional.of(new Lease(1L, 1L, new BigDecimal("80000"), LocalDate.now(), null, LeaseStatus.ACTIVE, null)));
 
         ProjectFinancialSummaryDto summary = service.compute(1L);
 
@@ -146,10 +146,10 @@ class ProjectFinancialSummaryServiceTest {
         ProfitDistributionLine line = new ProfitDistributionLine(1L, 10L, BigDecimal.ONE, new BigDecimal("100"), new BigDecimal("50000"));
         ProfitDistribution validated = new ProfitDistribution(1L, 1L, LocalDate.now(), LocalDate.now(),
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("10000"), BigDecimal.ZERO, new BigDecimal("50000"),
-                DistributionStatus.VALIDATED, 1L, java.time.Instant.now(), 2L, java.time.Instant.now(), List.of(line));
+                DistributionStatus.VALIDATED, 1L, java.time.Instant.now(), 2L, java.time.Instant.now(), List.of(line), null);
         ProfitDistribution proposed = new ProfitDistribution(2L, 1L, LocalDate.now(), LocalDate.now(),
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("99999"), BigDecimal.ZERO, new BigDecimal("99999"),
-                DistributionStatus.PROPOSED, 1L, java.time.Instant.now(), null, null, List.of());
+                DistributionStatus.PROPOSED, 1L, java.time.Instant.now(), null, null, List.of(), null);
         when(profitDistributionRepository.findByProjectId(1L)).thenReturn(List.of(validated, proposed));
 
         ProjectFinancialSummaryDto summary = service.compute(1L);

@@ -177,6 +177,6 @@ class ProfitDistributionServiceTest {
     private ProfitDistribution proposedDistribution(Long proposedBy) {
         return new ProfitDistribution(100L, 1L, periodStart, periodEnd,
                 new BigDecimal("1000000"), new BigDecimal("300000"), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                new BigDecimal("700000"), DistributionStatus.PROPOSED, proposedBy, java.time.Instant.now(), null, null, List.of());
+                new BigDecimal("700000"), DistributionStatus.PROPOSED, proposedBy, java.time.Instant.now(), null, null, List.of(), null);
     }
 }

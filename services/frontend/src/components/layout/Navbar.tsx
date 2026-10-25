@@ -17,7 +17,8 @@ import {
   LogIn,
   LogOut,
   Stethoscope,
-  Home
+  Home,
+  Landmark
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -32,6 +33,7 @@ const navItems = [
   { name: "Production", href: "/production", icon: Activity },
   { name: "Vétérinaires", href: "/veterinarians", icon: Stethoscope },
   { name: "Bénéfices", href: "/profits", icon: PiggyBank },
+  { name: "Actifs & Baux", href: "/assets", icon: Landmark },
 ];
 
 export function Navbar() {
