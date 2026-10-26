@@ -27,7 +27,7 @@ import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 
 const navItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Investissements", href: "/investments", icon: Wallet },
   { name: "Comptabilité", href: "/accounting", icon: ReceiptText },
   { name: "Production", href: "/production", icon: Activity },
@@ -56,7 +56,7 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="rounded-lg bg-primary p-1.5 shadow-sm">
               <Sprout className="h-6 w-6 text-primary-foreground" />
             </div>
