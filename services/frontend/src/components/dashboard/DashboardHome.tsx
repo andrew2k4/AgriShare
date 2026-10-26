@@ -20,59 +20,68 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/api";
 import type { components } from "@/api";
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection } from "firebase/firestore";
 
 type OperationDto = components["schemas"]["OperationDto"];
 type InvestorDto = components["schemas"]["InvestorDto"];
 type ProductionDayDto = components["schemas"]["ProductionDayDto"];
 type StockItemDto = components["schemas"]["StockItemDto"];
-type CapitalShareDto = components["schemas"]["CapitalShareDto"];
-
-interface FirestoreProject {
-  id: string;
-  name: string;
-  domain: string;
-  type: string;
-  status: string;
-  createdAt: string;
-}
+type ProjectDto = components["schemas"]["ProjectDto"];
+type InvestorShareDto = components["schemas"]["InvestorShareDto"];
 
 export function DashboardHome() {
-  const db = useFirestore();
-  const { user, isUserLoading } = useUser();
-  const projectsRef = useMemoFirebase(() => collection(db, "projects"), [db]);
-  const { data: projects } = useCollection<FirestoreProject>(
-    isUserLoading || !user ? null : projectsRef
-  );
-  const project = projects?.[0] ?? null;
+  const [projects, setProjects] = useState<ProjectDto[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
 
   const [operations, setOperations] = useState<OperationDto[]>([]);
   const [investors, setInvestors] = useState<InvestorDto[]>([]);
   const [productions, setProductions] = useState<ProductionDayDto[]>([]);
   const [stockItems, setStockItems] = useState<StockItemDto[]>([]);
-  const [capitalShares, setCapitalShares] = useState<CapitalShareDto[]>([]);
+  const [currentShares, setCurrentShares] = useState<InvestorShareDto[]>([]);
 
   useEffect(() => {
     Promise.all([
-      api.operations.getAll(),
+      api.projects.getAll(),
       api.investors.getAll(),
       api.productionDays.getAll(),
       api.stockInventories.getAll(),
-      api.capitalDistributions.getAll(),
-    ]).then(([opsRes, invRes, prodRes, stockRes, capitalRes]) => {
-      if (opsRes.data) setOperations(opsRes.data);
+    ]).then(([projRes, invRes, prodRes, stockRes]) => {
+      if (projRes.data) {
+        setProjects(projRes.data);
+        const firstId = projRes.data[0]?.id;
+        if (firstId != null) setSelectedProjectId(String(firstId));
+      }
       if (invRes.data) setInvestors(invRes.data);
       if (prodRes.data) setProductions(prodRes.data);
       if (stockRes.data?.length)
         setStockItems(stockRes.data.flatMap((s) => s.items ?? []));
-      if (capitalRes.data?.length)
-        setCapitalShares(capitalRes.data.flatMap((d) => d.shares ?? []));
     });
   }, []);
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setOperations([]);
+      setCurrentShares([]);
+      return;
+    }
+    api.operations.getByProject(Number(selectedProjectId)).then(({ data }) => {
+      if (data) setOperations(data);
+    });
+    api.projects.financialSummary(Number(selectedProjectId)).then(({ data }) => {
+      setCurrentShares(data?.currentShares ?? []);
+    });
+  }, [selectedProjectId]);
+
+  const investorName = (investorId: number) =>
+    investors.find((i) => i.id === investorId)?.fullName ?? `Investisseur #${investorId}`;
 
   const recentOperations = [...operations].reverse().slice(0, 5);
 
@@ -87,13 +96,22 @@ export function DashboardHome() {
               Bienvenue sur AgriShare. Gérer vos projets agro-pastoraux.
             </p>
           </div>
-          {project && (
+          {projects.length > 0 && (
             <div className="flex items-center gap-2 bg-white p-2 rounded-lg border">
               <Layers className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Projet:</span>
-              <Badge variant="outline" className="bg-primary/5 text-primary">
-                {project.name}
-              </Badge>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger className="h-8 w-48 border-none bg-transparent">
+                  <SelectValue placeholder="Choisir un projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </header>
@@ -194,18 +212,19 @@ export function DashboardHome() {
                   <TrendingUp className="h-5 w-5 text-accent" />
                   Parts de Capital
                 </CardTitle>
+                <CardDescription>Projet sélectionné, basé sur les unités de contribution</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {capitalShares.length === 0 ? (
+                {currentShares.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-2">
-                    Aucune distribution enregistrée.
+                    Aucun apport en capital enregistré pour ce projet.
                   </p>
                 ) : (
-                  capitalShares.map((share, i) => (
-                    <div key={i} className="flex justify-between items-center text-sm">
-                      <span>{share.investorName}</span>
+                  currentShares.map((share) => (
+                    <div key={share.investorId} className="flex justify-between items-center text-sm">
+                      <span>{investorName(share.investorId ?? 0)}</span>
                       <span className="font-bold text-primary">
-                        {share.percentage}%
+                        {share.sharePercentage}%
                       </span>
                     </div>
                   ))

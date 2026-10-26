@@ -1,6 +1,7 @@
 package com.gaming.agricul.dto;
 
 import com.gaming.agricul.LivestockType;
+import com.gaming.agricul.ProjectStatus;
 import com.gaming.agricul.ProjectType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -24,6 +25,9 @@ public record ProjectDto(
         @Schema(description = "Livestock type (only for LIVESTOCK projects)", example = "CHICKEN")
         LivestockType livestockType,
 
+        @Schema(description = "Project lifecycle status", example = "ACTIVE", accessMode = Schema.AccessMode.READ_ONLY)
+        ProjectStatus status,
+
         @Schema(description = "Project resources")
         ProjectResourcesDto resources,
 
@@ -34,8 +38,5 @@ public record ProjectDto(
         ProjectStatisticsDto statistics,
 
         @Schema(description = "Recorded production days")
-        List<ProductionDayDto> productions,
-
-        @Schema(description = "Financial operations of the project")
-        List<OperationDto> operations
+        List<ProductionDayDto> productions
 ) {}

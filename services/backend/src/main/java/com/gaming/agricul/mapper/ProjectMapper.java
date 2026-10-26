@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 public class ProjectMapper {
 
     private final ProductionDayMapper productionDayMapper;
-    private final OperationMapper operationMapper;
 
     public ProjectDto toDto(Project project) {
         ProjectResourcesDto resources = null;
@@ -29,7 +28,8 @@ public class ProjectMapper {
         ProjectCapitalDto capital = null;
         if (project.getCapital() != null) {
             ProjectCapital c = project.getCapital();
-            capital = new ProjectCapitalDto(c.getInitialCapital(), c.getCurrentCapital(), c.getTotalInvestment(), c.getTotalExpenses());
+            capital = new ProjectCapitalDto(c.getInitialCapital(), c.getCurrentCapital(), c.getTotalInvestment(),
+                    c.getTotalExpenses(), c.getReferenceDurationDays(), c.getCurrentPhase());
         }
 
         ProjectStatisticsDto statistics = null;
@@ -44,11 +44,11 @@ public class ProjectMapper {
                 project.getName(),
                 project.getProjectType(),
                 project.getLivestockType(),
+                project.getStatus(),
                 resources,
                 capital,
                 statistics,
-                project.getProductions().stream().map(productionDayMapper::toDto).toList(),
-                project.getOperations().stream().map(operationMapper::toDto).toList()
+                project.getProductions().stream().map(productionDayMapper::toDto).toList()
         );
     }
 
@@ -75,6 +75,9 @@ public class ProjectMapper {
         project.setName(dto.name());
         project.setProjectType(dto.projectType());
         project.setLivestockType(dto.livestockType());
+        if (dto.status() != null) {
+            project.setStatus(dto.status());
+        }
 
         if (dto.resources() != null) {
             ProjectResourcesDto r = dto.resources();
@@ -82,7 +85,8 @@ public class ProjectMapper {
         }
         if (dto.capital() != null) {
             ProjectCapitalDto c = dto.capital();
-            project.setCapital(new ProjectCapital(c.initialCapital(), c.currentCapital(), c.totalInvestment(), c.totalExpenses()));
+            project.setCapital(new ProjectCapital(c.initialCapital(), c.currentCapital(), c.totalInvestment(),
+                    c.totalExpenses(), c.referenceDurationDays(), c.currentPhase()));
         }
         if (dto.statistics() != null) {
             ProjectStatisticsDto s = dto.statistics();
@@ -91,9 +95,6 @@ public class ProjectMapper {
 
         if (dto.productions() != null) {
             project.setProductions(dto.productions().stream().map(productionDayMapper::toEntity).toList());
-        }
-        if (dto.operations() != null) {
-            project.setOperations(dto.operations().stream().map(operationMapper::toEntity).toList());
         }
 
         return project;

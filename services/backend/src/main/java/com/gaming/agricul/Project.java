@@ -46,6 +46,10 @@ public class Project {
     @Column(name = "livestock_type")
     private LivestockType livestockType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProjectStatus status = ProjectStatus.ACTIVE;
+
     @Embedded
     private ProjectResources resources;
 
@@ -58,8 +62,4 @@ public class Project {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "project_id")
     private List<ProductionDay> productions = new ArrayList<>();
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "project_id")
-    private List<Operation> operations = new ArrayList<>();
 }

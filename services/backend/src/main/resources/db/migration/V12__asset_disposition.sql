@@ -1,0 +1,3 @@
+ALTER TABLE assets ADD COLUMN disposition VARCHAR(50) NOT NULL DEFAULT 'PENDING';
+ALTER TABLE assets ADD COLUMN disposal_amount NUMERIC(19,4);
+ALTER TABLE assets ADD COLUMN disposal_investor_id BIGINT;
