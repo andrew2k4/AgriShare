@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: agrishare-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../../services/backend
+      dockerfile: Dockerfile
+    container_name: agrishare-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ../../secrets/firebase-service-account.json:/secrets/firebase-service-account.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../../services/frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    container_name: agrishare-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: agrishare-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ../../secrets/cloudflare-origin.pem:/etc/nginx/certs/cloudflare-origin.pem:ro
+      - ../../secrets/cloudflare-origin.key:/etc/nginx/certs/cloudflare-origin.key:ro
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
