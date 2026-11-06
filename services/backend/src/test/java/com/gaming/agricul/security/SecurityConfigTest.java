@@ -11,13 +11,13 @@ class SecurityConfigTest {
     @ParameterizedTest
     @ValueSource(strings = {"true", "false", "TRUE", " false "})
     void acceptsExplicitBooleans(String value) {
-        assertThatNoException().isThrownBy(() -> new SecurityConfig(value));
+        assertThatNoException().isThrownBy(() -> new SecurityConfig(value, new RateLimiter()));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"yes", "1", "ture", ""})
     void refusesToStart_onAnyOtherValue(String value) {
         // These would match neither filter chain and leave Spring Boot's default one active
-        assertThatIllegalStateException().isThrownBy(() -> new SecurityConfig(value));
+        assertThatIllegalStateException().isThrownBy(() -> new SecurityConfig(value, new RateLimiter()));
     }
 }

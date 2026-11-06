@@ -1,9 +1,11 @@
 package com.gaming.agricul.security;
 
 import com.gaming.agricul.AppUser;
+import com.gaming.agricul.exception.AuthException;
 import com.gaming.agricul.service.AppUserService;
 import com.google.firebase.auth.FirebaseToken;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -12,16 +14,21 @@ import org.springframework.stereotype.Component;
  * <ul>
  *   <li>a backend session (password or Google login): the user it belongs to;</li>
  *   <li>a Firebase token: the matching user, auto-provisioned on first login;</li>
- *   <li>otherwise the fixed ADMIN "dev-user". This only happens with the insecure dev
- *       chain (firebase.enabled=false): the secured chain rejects unauthenticated requests
- *       before they reach a controller.</li>
+ *   <li>otherwise, only with the insecure dev chain (firebase.enabled=false), the fixed ADMIN
+ *       "dev-user"; in every other case a 401.</li>
  * </ul>
  */
 @Component
-@RequiredArgsConstructor
 public class CurrentUserResolver {
 
     private final AppUserService appUserService;
+    private final boolean devMode;
+
+    public CurrentUserResolver(AppUserService appUserService,
+                               @Value("${firebase.enabled:true}") String firebaseEnabled) {
+        this.appUserService = appUserService;
+        this.devMode = "false".equalsIgnoreCase(firebaseEnabled.trim());
+    }
 
     public AppUser resolve(Authentication authentication) {
         if (authentication instanceof SessionAuthentication session) {
@@ -30,6 +37,11 @@ public class CurrentUserResolver {
         if (authentication != null && authentication.getPrincipal() instanceof FirebaseToken token) {
             return appUserService.findOrCreateByUid(
                     token.getUid(), token.getEmail(), token.getName(), token.isEmailVerified());
+        }
+        if (!devMode) {
+            // Defence in depth: the secured chain never lets such a request through, but an
+            // unexpected authentication type must never turn into the ADMIN dev-user
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Authentication required");
         }
         return appUserService.findOrCreateByUid("dev-user", null, "Dev User", false);
     }

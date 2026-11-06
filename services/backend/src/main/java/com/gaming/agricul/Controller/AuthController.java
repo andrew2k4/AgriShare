@@ -6,8 +6,7 @@ import com.gaming.agricul.dto.SessionDto;
 import com.gaming.agricul.exception.NotFoundException;
 import com.gaming.agricul.security.ClientIp;
 import com.gaming.agricul.security.CurrentUserResolver;
-import com.gaming.agricul.security.SessionAuthentication;
-import com.gaming.agricul.security.SessionUserFilter;
+import com.gaming.agricul.security.SessionLogin;
 import com.gaming.agricul.service.AuthService;
 import com.gaming.agricul.service.SessionService;
 import com.google.firebase.auth.FirebaseToken;
@@ -18,16 +17,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
-import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,14 +42,11 @@ public class AuthController {
 
     private static final Map<String, String> CHECK_YOUR_INBOX = Map.of("message",
             "If this address can be used, an e-mail has been sent to it");
-    private static final int USER_AGENT_MAX_LENGTH = 255;
 
-    private final SecurityContextHolderStrategy holder = SecurityContextHolder.getContextHolderStrategy();
     private final CurrentUserResolver currentUserResolver;
     private final AuthService authService;
     private final SessionService sessionService;
-    private final SecurityContextRepository securityContextRepository;
-    private final CsrfTokenRepository csrfTokenRepository;
+    private final SessionLogin sessionLogin;
 
     @GetMapping("/csrf")
     @Operation(summary = "Get a CSRF token; send it back in the X-XSRF-TOKEN header on every POST/PUT/DELETE "
@@ -103,38 +93,15 @@ public class AuthController {
     @Operation(summary = "Sign in with an e-mail or username and a password; opens a session (cookie)")
     public Map<String, Object> login(@RequestBody AuthRequests.Login body,
                                      HttpServletRequest request, HttpServletResponse response) {
-        String clientIp = ClientIp.of(request);
-        AppUser user = authService.authenticate(body.identifier(), body.password(), clientIp);
-
-        // New session id at login (session fixation): drop whatever session existed before
-        HttpSession previous = request.getSession(false);
-        if (previous != null) {
-            previous.invalidate();
-        }
-        HttpSession session = request.getSession(true);
-        session.setAttribute(SessionUserFilter.AUTH_TIME, System.currentTimeMillis());
-        session.setAttribute(SessionUserFilter.CLIENT_IP, clientIp);
-        session.setAttribute(SessionUserFilter.USER_AGENT, truncate(request.getHeader(HttpHeaders.USER_AGENT)));
-
-        SecurityContext context = holder.createEmptyContext();
-        context.setAuthentication(SessionAuthentication.stored(user.getId()));
-        holder.setContext(context);
-        securityContextRepository.saveContext(context, request, response);
-
-        // A token obtained before login is not kept for the signed-in session: the frontend
-        // must fetch a new one from /api/auth/csrf after logging in
-        csrfTokenRepository.saveToken(null, request, response);
+        AppUser user = authService.authenticate(body.identifier(), body.password(), ClientIp.of(request));
+        sessionLogin.open(user, request, response);
         return meBody(user, null);
     }
 
     @PostMapping("/logout")
     @Operation(summary = "Sign out of this session")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
-        holder.clearContext();
+        sessionLogin.close(request);
         return ResponseEntity.noContent().build();
     }
 
@@ -224,12 +191,5 @@ public class AuthController {
     private static String currentSessionId(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         return session == null ? null : session.getId();
-    }
-
-    private static String truncate(String value) {
-        if (value == null) {
-            return null;
-        }
-        return value.length() > USER_AGENT_MAX_LENGTH ? value.substring(0, USER_AGENT_MAX_LENGTH) : value;
     }
 }

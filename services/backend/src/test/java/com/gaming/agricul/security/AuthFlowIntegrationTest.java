@@ -438,7 +438,11 @@ class AuthFlowIntegrationTest {
 
     private MockHttpServletRequestBuilder withCsrf(MockHttpServletRequestBuilder request, Csrf csrf) {
         return request.contentType(MediaType.APPLICATION_JSON)
-                .header("X-Real-IP", clientIp)
+                // What Tomcat's RemoteIpValve leaves after reading X-Real-IP from Nginx
+                .with(request1 -> {
+                    request1.setRemoteAddr(clientIp);
+                    return request1;
+                })
                 .cookie(csrf.cookie())
                 .header("X-XSRF-TOKEN", csrf.token());
     }

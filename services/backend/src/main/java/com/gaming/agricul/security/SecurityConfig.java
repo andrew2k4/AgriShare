@@ -2,6 +2,7 @@ package com.gaming.agricul.security;
 
 import com.gaming.agricul.repository.AppUserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +11,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.context.DelegatingSecurityContextRepository;
@@ -55,6 +59,8 @@ public class SecurityConfig {
             "/api/auth/resend-verification",
             "/api/auth/password/forgot",
             "/api/auth/password/reset",
+            // Google sign-in: start of the flow, and Google's callback
+            "/oauth2/authorization/**", "/login/oauth2/code/**",
             "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html"
     };
 
@@ -66,12 +72,18 @@ public class SecurityConfig {
     @Value("${app.session.absolute-timeout:12h}")
     private Duration absoluteSessionTimeout;
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
+    private final RateLimiter rateLimiter;
+
     /**
      * Only "true" and "false" select a filter chain below. Any other value (e.g. "yes",
      * "ture") would match neither and leave Spring Boot's default chain in place, so it is
      * rejected at startup instead.
      */
-    public SecurityConfig(@Value("${firebase.enabled:true}") String firebaseEnabled) {
+    public SecurityConfig(@Value("${firebase.enabled:true}") String firebaseEnabled, RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         if (!"true".equalsIgnoreCase(firebaseEnabled.trim()) && !"false".equalsIgnoreCase(firebaseEnabled.trim())) {
             throw new IllegalStateException(
                     "firebase.enabled must be 'true' or 'false', got '" + firebaseEnabled + "'");
@@ -129,8 +141,10 @@ public class SecurityConfig {
     @ConditionalOnProperty(name = "firebase.enabled", havingValue = "true", matchIfMissing = true)
     public SecurityFilterChain firebaseFilterChain(HttpSecurity http, FirebaseTokenFilter firebaseTokenFilter,
                                                    AppUserRepository appUserRepository,
-                                                   CookieCsrfTokenRepository csrfTokenRepository) throws Exception {
-        common(http, appUserRepository, csrfTokenRepository)
+                                                   CookieCsrfTokenRepository csrfTokenRepository,
+                                                   ObjectProvider<ClientRegistrationRepository> google,
+                                                   GoogleLoginHandlers googleHandlers) throws Exception {
+        common(http, appUserRepository, csrfTokenRepository, google, googleHandlers)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated())
@@ -147,10 +161,12 @@ public class SecurityConfig {
     @Bean
     @ConditionalOnProperty(name = "firebase.enabled", havingValue = "false")
     public SecurityFilterChain devFilterChain(HttpSecurity http, AppUserRepository appUserRepository,
-                                              CookieCsrfTokenRepository csrfTokenRepository) throws Exception {
+                                              CookieCsrfTokenRepository csrfTokenRepository,
+                                              ObjectProvider<ClientRegistrationRepository> google,
+                                              GoogleLoginHandlers googleHandlers) throws Exception {
         log.warn("SECURITY DISABLED: firebase.enabled=false, every request without a session runs as the "
                 + "ADMIN dev-user. Never use this setting outside local development.");
-        common(http, appUserRepository, csrfTokenRepository)
+        common(http, appUserRepository, csrfTokenRepository, google, googleHandlers)
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         return http.build();
     }
@@ -160,8 +176,14 @@ public class SecurityConfig {
      * Filter bean as a global servlet filter too, outside the security chain.
      */
     private HttpSecurity common(HttpSecurity http, AppUserRepository appUserRepository,
-                                CookieCsrfTokenRepository csrfTokenRepository) throws Exception {
+                                CookieCsrfTokenRepository csrfTokenRepository,
+                                ObjectProvider<ClientRegistrationRepository> google,
+                                GoogleLoginHandlers googleHandlers) throws Exception {
         SessionUserFilter sessionUserFilter = new SessionUserFilter(appUserRepository, absoluteSessionTimeout);
+        ClientRegistrationRepository googleClient = google.getIfAvailable();
+        if (googleClient != null) {
+            googleLogin(http, googleClient, googleHandlers, rateLimiter);
+        }
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf
@@ -180,6 +202,29 @@ public class SecurityConfig {
                         .authenticationEntryPoint(ApiErrorWriter.unauthorized())
                         .accessDeniedHandler(ApiErrorWriter.forbidden()))
                 .addFilterAfter(sessionUserFilter, UsernamePasswordAuthenticationFilter.class);
+    }
+
+    /**
+     * Google sign-in through Spring Security's OAuth2 client, with PKCE. Spring's own result
+     * (an OAuth2 token) is never stored in the session: the handlers replace it with our
+     * SessionAuthentication, so every signed-in request goes through the same checks as a
+     * password login. Setting loginPage turns off the HTML login page Spring would generate.
+     */
+    private void googleLogin(HttpSecurity http, ClientRegistrationRepository clients,
+                             GoogleLoginHandlers handlers, RateLimiter rateLimiter) throws Exception {
+        DefaultOAuth2AuthorizationRequestResolver pkce =
+                new DefaultOAuth2AuthorizationRequestResolver(clients, "/oauth2/authorization");
+        pkce.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
+        http.oauth2Login(oauth -> oauth
+                .clientRegistrationRepository(clients)
+                // Google's tokens are not needed once the user is identified: never keep them
+                .authorizedClientRepository(new DiscardingAuthorizedClientRepository())
+                .loginPage(frontendUrl.replaceAll("/+$", "") + "/login")
+                .authorizationEndpoint(endpoint -> endpoint
+                        .authorizationRequestResolver(new RateLimitedAuthorizationRequestResolver(pkce, rateLimiter)))
+                .securityContextRepository(new RequestAttributeSecurityContextRepository())
+                .successHandler(handlers)
+                .failureHandler(handlers));
     }
 
     static RequestMatcher csrfRequired() {
