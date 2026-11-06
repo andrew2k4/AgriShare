@@ -49,9 +49,20 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ../../secrets/cloudflare-origin.pem:/etc/nginx/certs/cloudflare-origin.pem:ro
       - ../../secrets/cloudflare-origin.key:/etc/nginx/certs/cloudflare-origin.key:ro
+      - ../../secrets/certbot-webroot:/var/www/certbot:ro
+      - ../../secrets/letsencrypt:/etc/nginx/letsencrypt:ro
     depends_on:
       - backend
       - frontend
+    networks:
+      - default
+      - mailcow-network
 
 volumes:
   postgres_data:
+
+networks:
+  default: {}
+  mailcow-network:
+    external: true
+    name: mailcowdockerized_mailcow-network
