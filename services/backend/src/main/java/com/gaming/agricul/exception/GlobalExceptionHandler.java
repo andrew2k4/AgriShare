@@ -18,6 +18,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidInputException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidInput(InvalidInputException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<Map<String, Object>> handleBusinessRule(BusinessRuleException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());

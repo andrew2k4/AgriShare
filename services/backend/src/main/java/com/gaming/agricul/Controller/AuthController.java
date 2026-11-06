@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -30,12 +32,16 @@ public class AuthController {
         AppUser appUser = currentUserResolver.resolve(authentication);
         FirebaseToken token = authentication != null && authentication.getPrincipal() instanceof FirebaseToken t
                 ? t : null;
-        return ResponseEntity.ok(Map.of(
-                "uid", appUser.getFirebaseUid(),
-                "email", token != null && token.getEmail() != null ? token.getEmail() : "",
-                "name", token != null && token.getName() != null ? token.getName() : "",
-                "picture", token != null && token.getPicture() != null ? token.getPicture() : "",
-                "role", appUser.getRole()
-        ));
+        // LinkedHashMap, not Map.of: firebaseUid is null for accounts created without Firebase
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("id", appUser.getId());
+        body.put("uid", appUser.getFirebaseUid());
+        body.put("email", token != null && token.getEmail() != null ? token.getEmail()
+                : Objects.requireNonNullElse(appUser.getEmail(), ""));
+        body.put("name", token != null && token.getName() != null ? token.getName()
+                : Objects.requireNonNullElse(appUser.getDisplayName(), ""));
+        body.put("picture", token != null && token.getPicture() != null ? token.getPicture() : "");
+        body.put("role", appUser.getRole());
+        return ResponseEntity.ok(body);
     }
 }

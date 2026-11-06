@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
-@ConditionalOnProperty(name = "firebase.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "firebase.enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 public class FirebaseTokenFilter extends OncePerRequestFilter {
 

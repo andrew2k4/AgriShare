@@ -13,7 +13,7 @@ import org.springframework.core.io.Resource;
 import java.io.IOException;
 
 @Configuration
-@ConditionalOnProperty(name = "firebase.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "firebase.enabled", havingValue = "true", matchIfMissing = true)
 public class FirebaseConfig {
 
     @Value("${firebase.service-account-path}")

@@ -20,8 +20,9 @@ public class CurrentUserResolver {
 
     public AppUser resolve(Authentication authentication) {
         if (authentication != null && authentication.getPrincipal() instanceof FirebaseToken token) {
-            return appUserService.findOrCreateByUid(token.getUid(), token.getEmail(), token.getName());
+            return appUserService.findOrCreateByUid(
+                    token.getUid(), token.getEmail(), token.getName(), token.isEmailVerified());
         }
-        return appUserService.findOrCreateByUid("dev-user", null, "Dev User");
+        return appUserService.findOrCreateByUid("dev-user", null, "Dev User", false);
     }
 }
