@@ -4,9 +4,9 @@ import com.gaming.agricul.Project;
 import com.gaming.agricul.dto.CreateProjectRequest;
 import com.gaming.agricul.dto.ProjectDto;
 import com.gaming.agricul.mapper.ProjectMapper;
+import com.gaming.agricul.security.CurrentUserResolver;
 import com.gaming.agricul.service.ProjectClosureService;
 import com.gaming.agricul.service.ProjectService;
-import com.google.firebase.auth.FirebaseToken;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -40,6 +40,7 @@ public class ProjectController {
     private final ProjectService projectService;
     private final ProjectMapper projectMapper;
     private final ProjectClosureService projectClosureService;
+    private final CurrentUserResolver currentUserResolver;
 
     @GetMapping
     @Operation(summary = "Retrieve all projects owned by the authenticated user",
@@ -117,9 +118,6 @@ public class ProjectController {
     }
 
     private String extractUid(Authentication authentication) {
-        if (authentication != null && authentication.getPrincipal() instanceof FirebaseToken token) {
-            return token.getUid();
-        }
-        return "dev-user";
+        return CurrentUserResolver.ownerKey(currentUserResolver.resolve(authentication));
     }
 }

@@ -2,6 +2,7 @@ package com.gaming.agricul.service;
 
 import com.gaming.agricul.AppUser;
 import com.gaming.agricul.Role;
+import com.gaming.agricul.exception.BusinessRuleException;
 import com.gaming.agricul.exception.NotFoundException;
 import com.gaming.agricul.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
@@ -11,11 +12,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.gaming.agricul.UserStatus;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -107,7 +110,8 @@ class AppUserServiceTest {
     void findOrCreateByUid_provisionsWithoutEmail_whenTheEmailBelongsToAnotherAccount() {
         // e.g. a Firebase account deleted and re-created under a new UID
         when(appUserRepository.findByFirebaseUid("uid-new")).thenReturn(Optional.empty());
-        when(appUserRepository.existsByEmail("alice@example.com")).thenReturn(true);
+        AppUser holder = AppUser.create("alice@example.com", "Alice", Role.INVESTOR, UserStatus.ACTIVE);
+        when(appUserRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(holder));
         when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         AppUser result = appUserService.findOrCreateByUid("uid-new", "Alice@example.com", "Alice", true);
@@ -127,10 +131,69 @@ class AppUserServiceTest {
         assertThat(result.getEmail()).isEqualTo("admin@localhost");
     }
 
+    @Test
+    void reactivate_sendsAnUnconfirmedLocalAccountBackToPending() {
+        AppUser user = AppUser.create("p@example.com", "P", Role.INVESTOR, UserStatus.SUSPENDED);
+        user.setId(5L);
+        when(appUserRepository.findById(5L)).thenReturn(Optional.of(user));
+        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(appUserService.reactivate(5L).getStatus()).isEqualTo(UserStatus.PENDING);
+    }
+
+    @Test
+    void reactivate_restoresAConfirmedAccount() {
+        AppUser user = AppUser.create("a@example.com", "A", Role.INVESTOR, UserStatus.SUSPENDED);
+        user.setId(6L);
+        user.setEmailVerifiedAt(Instant.now());
+        when(appUserRepository.findById(6L)).thenReturn(Optional.of(user));
+        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(appUserService.reactivate(6L).getStatus()).isEqualTo(UserStatus.ACTIVE);
+    }
+
+    @Test
+    void reactivate_refusesAnAccountThatIsNotSuspended() {
+        AppUser user = AppUser.create("p@example.com", "P", Role.INVESTOR, UserStatus.PENDING);
+        user.setId(7L);
+        when(appUserRepository.findById(7L)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> appUserService.reactivate(7L)).isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    void findOrCreateByUid_takesTheEmailFromAnUnconfirmedRegistration_whenFirebaseVerifiedIt() {
+        AppUser squatter = AppUser.create("victim@example.com", "Squatter", Role.INVESTOR, UserStatus.PENDING);
+        squatter.setId(9L);
+        when(appUserRepository.findByFirebaseUid("uid-victim")).thenReturn(Optional.empty());
+        when(appUserRepository.findByEmail("victim@example.com")).thenReturn(Optional.of(squatter));
+        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AppUser result = appUserService.findOrCreateByUid("uid-victim", "victim@example.com", "Victim", true);
+
+        verify(appUserRepository).delete(squatter);
+        assertThat(result.getEmail()).isEqualTo("victim@example.com");
+        assertThat(result.isEmailVerified()).isTrue();
+    }
+
+    @Test
+    void findOrCreateByUid_keepsAnUnconfirmedRegistration_whenFirebaseDidNotVerifyEither() {
+        AppUser pending = AppUser.create("x@example.com", "X", Role.INVESTOR, UserStatus.PENDING);
+        when(appUserRepository.findByFirebaseUid("uid-x")).thenReturn(Optional.empty());
+        when(appUserRepository.findByEmail("x@example.com")).thenReturn(Optional.of(pending));
+        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AppUser result = appUserService.findOrCreateByUid("uid-x", "x@example.com", "X", false);
+
+        verify(appUserRepository, never()).delete(any());
+        assertThat(result.getEmail()).isNull();
+    }
+
     private static AppUser existingUser(Role role) {
         AppUser user = AppUser.create("a@b.com", "Alice", role, UserStatus.ACTIVE);
         user.setId(1L);
         user.setFirebaseUid("uid-1");
         return user;
     }
+
 }

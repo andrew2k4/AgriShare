@@ -65,6 +65,23 @@ public final class CredentialRules {
         }
     }
 
+    /**
+     * Login identifier (e-mail or username), trimmed and lower-cased but never rejected: a
+     * malformed identifier must fail like a wrong password, not with a different error.
+     */
+    public static String normalizeIdentifier(String raw) {
+        return raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Optional display name: trimmed, control characters removed, at most 100 characters. */
+    public static String cleanDisplayName(String raw, String fallback) {
+        String name = raw == null ? "" : raw.replaceAll("\\p{Cntrl}", "").trim();
+        if (name.isEmpty()) {
+            return fallback;
+        }
+        return name.length() > 100 ? name.substring(0, 100) : name;
+    }
+
     /** A login identifier is an e-mail if it contains '@', a username otherwise. */
     public static boolean isEmail(String identifier) {
         return identifier != null && identifier.contains("@");

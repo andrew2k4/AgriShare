@@ -2,10 +2,12 @@ package com.gaming.agricul.repository;
 
 import com.gaming.agricul.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -28,4 +30,15 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     @Query("SELECT count(u) > 0 FROM AppUser u WHERE lower(u.username) = :username")
     boolean existsByUsername(@Param("username") String normalizedUsername);
+
+    /** Atomic, so concurrent wrong passwords cannot overwrite each other's count. */
+    @Modifying
+    @Query("UPDATE AppUser u SET u.failedLoginCount = u.failedLoginCount + 1 WHERE u.id = :id")
+    int incrementFailedLogins(@Param("id") Long id);
+
+    /** Locks the account once it has reached the limit, and restarts the count. */
+    @Modifying
+    @Query("UPDATE AppUser u SET u.lockedUntil = :until, u.failedLoginCount = 0 "
+            + "WHERE u.id = :id AND u.failedLoginCount >= :max")
+    int lockIfTooManyFailures(@Param("id") Long id, @Param("max") int max, @Param("until") Instant until);
 }

@@ -96,6 +96,35 @@ public class AuthMailService {
                 link);
     }
 
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onAccountAlreadyExists(AccountAlreadyExistsNotice event) {
+        String link = frontendUrl + "/forgot-password";
+        send(event.email(),
+                "Vous avez déjà un compte AgriShare",
+                """
+                Bonjour,
+
+                Une inscription vient d'être tentée avec cette adresse e-mail, mais un compte \
+                AgriShare existe déjà pour elle. Si c'est vous, connectez-vous simplement. \
+                Si vous avez oublié votre mot de passe, ou n'en avez jamais défini, \
+                choisissez-en un ici :
+
+                %s
+
+                Si vous n'êtes pas à l'origine de cette tentative, ignorez ce message : \
+                votre compte n'a pas été modifié.
+                """.formatted(link),
+                html("Vous avez déjà un compte",
+                        "Une inscription vient d'être tentée avec cette adresse e-mail, mais un compte "
+                                + "AgriShare existe déjà pour elle. Si c'est vous, connectez-vous simplement, "
+                                + "ou choisissez un nouveau mot de passe si vous l'avez oublié.",
+                        "Choisir un mot de passe", link,
+                        "Si vous n'êtes pas à l'origine de cette tentative, ignorez ce message : "
+                                + "votre compte n'a pas été modifié."),
+                link);
+    }
+
     private void send(String to, String subject, String text, String html, String link) {
         if (!enabled) {
             log.info("[mail disabled] '{}' for {}: {}", subject, to, link);
