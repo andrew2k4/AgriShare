@@ -171,7 +171,7 @@ public class AuthController {
     }
 
     @PutMapping("/username")
-    @Operation(summary = "Choose a username, once, for an account that has none (came from Firebase or Google)")
+    @Operation(summary = "Choose a username, once, for an account that has none (e.g. created with Google)")
     public Map<String, Object> chooseUsername(@RequestBody AuthRequests.Username body, Authentication authentication) {
         AppUser user = authService.chooseUsername(currentUserResolver.resolve(authentication).getId(), body.username());
         return meBody(user, null);
