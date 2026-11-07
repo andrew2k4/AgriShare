@@ -12,12 +12,14 @@ import com.gaming.agricul.mail.EmailVerificationRequested;
 import com.gaming.agricul.mail.PasswordResetRequested;
 import com.gaming.agricul.repository.AppUserRepository;
 import com.gaming.agricul.security.CredentialRules;
+import com.gaming.agricul.security.FirebasePasswordCheck;
 import com.gaming.agricul.security.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -58,16 +60,19 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final RateLimiter rateLimiter;
     private final ApplicationEventPublisher events;
+    private final FirebasePasswordCheck firebasePasswordCheck;
     /** Checked when the account does not exist, so that case takes as long as a wrong password. */
     private final String dummyHash;
 
     public AuthService(AppUserRepository appUserRepository, UserTokenService userTokenService,
-                       PasswordEncoder passwordEncoder, RateLimiter rateLimiter, ApplicationEventPublisher events) {
+                       PasswordEncoder passwordEncoder, RateLimiter rateLimiter, ApplicationEventPublisher events,
+                       FirebasePasswordCheck firebasePasswordCheck) {
         this.appUserRepository = appUserRepository;
         this.userTokenService = userTokenService;
         this.passwordEncoder = passwordEncoder;
         this.rateLimiter = rateLimiter;
         this.events = events;
+        this.firebasePasswordCheck = firebasePasswordCheck;
         this.dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -126,10 +131,13 @@ public class AuthService {
     // ---------------------------------------------------------------- login
 
     /**
-     * Checks the credentials and returns the signed-in user. The failure counter is written
-     * even though the method then throws, hence noRollbackFor.
+     * Checks the credentials and returns the signed-in user.
+     *
+     * <p>Runs outside a transaction: each repository call commits on its own, so the failure
+     * counter is kept even though the method then throws, and the call to Firebase (for
+     * accounts still to migrate, up to a few seconds) never holds a database connection.
      */
-    @Transactional(noRollbackFor = AuthException.class)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AppUser authenticate(String rawIdentifier, String password, String clientIp) {
         String ipKey = "login-ip:" + clientIp;
         if (!rateLimiter.tryAcquire(ipKey, LOGINS_PER_IP, LOGIN_WINDOW)) {
@@ -164,9 +172,33 @@ public class AuthService {
             rateLimiter.record(identifierKey, LOGIN_WINDOW);
             throw AuthException.invalidCredentials();
         }
+
+        // Account from Firebase without a password here yet: ask Firebase once, then keep our own
+        // hash. Not for a suspended account: it cannot sign in anyway, and Firebase would answer
+        // USER_DISABLED, which must not count as a wrong password.
+        boolean countsAsFailure = hasPassword;
+        if (!hasPassword && user != null && user.getStatus() != UserStatus.SUSPENDED
+                && firebasePasswordCheck.canMigrate(user)) {
+            switch (firebasePasswordCheck.check(user.getEmail(), password, user.getFirebaseUid())) {
+                case MATCH -> {
+                    user.setPasswordHash(passwordEncoder.encode(password));
+                    hasPassword = true;
+                    matches = true;
+                    log.info("Password of account {} migrated from Firebase", user.getId());
+                }
+                case NO_MATCH -> countsAsFailure = true;
+                case UNAVAILABLE -> {
+                    // Still counted on the identifier, so retries cannot keep hammering Firebase
+                    rateLimiter.record(identifierKey, LOGIN_WINDOW);
+                    throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "LOGIN_UNAVAILABLE",
+                            "Sign-in is temporarily unavailable, please try again in a few minutes");
+                }
+            }
+        }
+
         if (!hasPassword || !matches) {
             rateLimiter.record(identifierKey, LOGIN_WINDOW);
-            if (hasPassword) {
+            if (countsAsFailure) {
                 appUserRepository.incrementFailedLogins(user.getId());
                 if (appUserRepository.lockIfTooManyFailures(user.getId(), MAX_FAILED_LOGINS, now.plus(LOCK_DURATION)) > 0) {
                     log.warn("Account {} locked for {} after {} wrong passwords", user.getId(), LOCK_DURATION, MAX_FAILED_LOGINS);
@@ -251,6 +283,30 @@ public class AuthService {
         CredentialRules.checkPassword(newPassword);
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         appUserRepository.save(user);
+    }
+
+    // ---------------------------------------------------------------- username
+
+    /**
+     * Lets an account without a username (one that came from Firebase or Google) choose one.
+     * It is chosen once; changing it later is not offered.
+     */
+    public AppUser chooseUsername(Long userId, String rawUsername) {
+        String username = CredentialRules.normalizeUsername(rawUsername);
+        AppUser user = appUserRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Authentication required"));
+        if (user.getUsername() != null) {
+            throw new AuthException(HttpStatus.CONFLICT, "USERNAME_ALREADY_SET", "This account already has a username");
+        }
+        if (appUserRepository.existsByUsername(username)) {
+            throw new AuthException(HttpStatus.CONFLICT, "USERNAME_TAKEN", "This username is already taken");
+        }
+        // Conditional update: of two concurrent requests, only the first sets it
+        if (appUserRepository.setUsernameIfNone(userId, username) == 0) {
+            throw new AuthException(HttpStatus.CONFLICT, "USERNAME_ALREADY_SET", "This account already has a username");
+        }
+        user.setUsername(username);
+        return user;
     }
 
     // ---------------------------------------------------------------- helpers

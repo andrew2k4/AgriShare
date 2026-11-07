@@ -27,4 +27,6 @@ public final class AuthRequests {
     public record ResetPassword(String token, String newPassword) {}
 
     public record ChangePassword(String currentPassword, String newPassword) {}
+
+    public record Username(@Schema(example = "marie.curie") String username) {}
 }

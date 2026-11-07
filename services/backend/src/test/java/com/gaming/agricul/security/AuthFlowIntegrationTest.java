@@ -69,6 +69,10 @@ class AuthFlowIntegrationTest {
     @MockitoBean
     private FirebaseAuth firebaseAuth;
 
+    /** Firebase's password endpoint, mocked; by default no account is migratable. */
+    @MockitoBean
+    private FirebasePasswordCheck firebasePasswordCheck;
+
     /** Unique per test: rate-limit counters are keyed by IP and must not leak between tests. */
     private String clientIp;
     private String email;
@@ -420,6 +424,114 @@ class AuthFlowIntegrationTest {
     void retryAfter_isReadableByTheFrontend() throws Exception {
         mvc.perform(get("/api/auth/csrf").header("Origin", "http://localhost:3000"))
                 .andExpect(header().string("Access-Control-Expose-Headers", org.hamcrest.Matchers.containsString("Retry-After")));
+    }
+
+    // ---------------------------------------------------------------- Firebase migration
+
+    @Test
+    void firebaseAccount_migratesItsPasswordAtFirstLogin_thenNeverAsksFirebaseAgain() throws Exception {
+        AppUser firebase = firebaseAccount(email, "fb-" + username);
+        org.mockito.Mockito.when(firebasePasswordCheck.canMigrate(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> !((AppUser) invocation.getArgument(0)).hasPassword());
+        org.mockito.Mockito.when(firebasePasswordCheck.check(email, PASSWORD, "fb-" + username))
+                .thenReturn(FirebasePasswordCheck.Outcome.MATCH);
+
+        login(email, PASSWORD).andExpect(status().isOk()).andExpect(jsonPath("$.hasPassword").value(true));
+        assertThat(users.findById(firebase.getId()).orElseThrow().getPasswordHash()).startsWith("{argon2}");
+
+        login(email, PASSWORD).andExpect(status().isOk());
+        org.mockito.Mockito.verify(firebasePasswordCheck, org.mockito.Mockito.times(1))
+                .check(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void firebaseAccount_wrongPassword_countsTowardsTheLock() throws Exception {
+        AppUser firebase = firebaseAccount(email, "fb-" + username);
+        org.mockito.Mockito.when(firebasePasswordCheck.canMigrate(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        org.mockito.Mockito.when(firebasePasswordCheck.check(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(FirebasePasswordCheck.Outcome.NO_MATCH);
+
+        login(email, "wrong").andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+        assertThat(users.findById(firebase.getId()).orElseThrow().getFailedLoginCount()).isEqualTo(1);
+        assertThat(users.findById(firebase.getId()).orElseThrow().hasPassword()).isFalse();
+    }
+
+    @Test
+    void firebaseDown_isA503_notAWrongPassword() throws Exception {
+        firebaseAccount(email, "fb-" + username);
+        org.mockito.Mockito.when(firebasePasswordCheck.canMigrate(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        org.mockito.Mockito.when(firebasePasswordCheck.check(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(FirebasePasswordCheck.Outcome.UNAVAILABLE);
+
+        login(email, PASSWORD).andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("LOGIN_UNAVAILABLE"));
+    }
+
+    @Test
+    void suspendedFirebaseAccount_isNotCheckedWithFirebase_norCountedAsAFailure() throws Exception {
+        AppUser firebase = firebaseAccount(email, "fb-" + username);
+        firebase.setStatus(UserStatus.SUSPENDED);
+        users.save(firebase);
+        org.mockito.Mockito.when(firebasePasswordCheck.canMigrate(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+
+        login(email, PASSWORD).andExpect(status().isUnauthorized());
+
+        org.mockito.Mockito.verify(firebasePasswordCheck, org.mockito.Mockito.never())
+                .check(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        assertThat(users.findById(firebase.getId()).orElseThrow().getFailedLoginCount()).isZero();
+    }
+
+    @Test
+    void firebaseUnavailable_stillCountsOnTheIdentifier() throws Exception {
+        firebaseAccount(email, "fb-" + username);
+        org.mockito.Mockito.when(firebasePasswordCheck.canMigrate(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        org.mockito.Mockito.when(firebasePasswordCheck.check(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(FirebasePasswordCheck.Outcome.UNAVAILABLE);
+
+        for (int i = 0; i < 5; i++) {
+            login(email, PASSWORD).andExpect(status().isServiceUnavailable());
+        }
+        login(email, PASSWORD).andExpect(status().isTooManyRequests());
+        org.mockito.Mockito.verify(firebasePasswordCheck, org.mockito.Mockito.times(5))
+                .check(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void accountWithoutUsername_choosesOneOnce() throws Exception {
+        AppUser firebase = firebaseAccount(email, "fb-" + username);
+        firebase.setPasswordHash(new org.springframework.security.crypto.argon2.Argon2PasswordEncoder(16, 32, 1, 1 << 12, 1)
+                .encode(PASSWORD).replaceFirst("^", "{argon2}"));
+        users.save(firebase);
+        Cookie session = sessionCookie(login(email, PASSWORD).andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").doesNotExist()).andReturn());
+
+        Csrf csrf = csrf();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/auth/username")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"" + username + "\"}")
+                        .cookie(session, csrf.cookie()).header("X-XSRF-TOKEN", csrf.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(username));
+
+        Csrf again = csrf();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/auth/username")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"other" + username + "\"}")
+                        .cookie(session, again.cookie()).header("X-XSRF-TOKEN", again.token()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("USERNAME_ALREADY_SET"));
+
+        login(username, PASSWORD).andExpect(status().isOk());
+    }
+
+    /** An account as Firebase provisioning leaves it: active, Firebase UID, no local password. */
+    private AppUser firebaseAccount(String email, String uid) {
+        AppUser user = AppUser.create(email, "Firebase User", Role.INVESTOR, UserStatus.ACTIVE);
+        user.setFirebaseUid(uid);
+        user.setEmailVerifiedAt(Instant.now());
+        return users.save(user);
     }
 
     // ---------------------------------------------------------------- helpers

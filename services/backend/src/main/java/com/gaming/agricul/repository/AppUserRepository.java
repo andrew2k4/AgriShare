@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -32,13 +33,21 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     boolean existsByUsername(@Param("username") String normalizedUsername);
 
     /** Atomic, so concurrent wrong passwords cannot overwrite each other's count. */
+    @Transactional
     @Modifying
     @Query("UPDATE AppUser u SET u.failedLoginCount = u.failedLoginCount + 1 WHERE u.id = :id")
     int incrementFailedLogins(@Param("id") Long id);
 
     /** Locks the account once it has reached the limit, and restarts the count. */
+    @Transactional
     @Modifying
     @Query("UPDATE AppUser u SET u.lockedUntil = :until, u.failedLoginCount = 0 "
             + "WHERE u.id = :id AND u.failedLoginCount >= :max")
     int lockIfTooManyFailures(@Param("id") Long id, @Param("max") int max, @Param("until") Instant until);
+
+    /** Sets the username only if the account has none yet; returns 0 otherwise. */
+    @Transactional
+    @Modifying
+    @Query("UPDATE AppUser u SET u.username = :username WHERE u.id = :id AND u.username IS NULL")
+    int setUsernameIfNone(@Param("id") Long id, @Param("username") String username);
 }

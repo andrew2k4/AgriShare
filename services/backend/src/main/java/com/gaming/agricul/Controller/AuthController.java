@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -167,6 +168,13 @@ public class AuthController {
         authService.changePassword(userId, body.currentPassword(), body.newPassword());
         sessionService.revokeAllExcept(userId, currentSessionId(request));
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @PutMapping("/username")
+    @Operation(summary = "Choose a username, once, for an account that has none (came from Firebase or Google)")
+    public Map<String, Object> chooseUsername(@RequestBody AuthRequests.Username body, Authentication authentication) {
+        AppUser user = authService.chooseUsername(currentUserResolver.resolve(authentication).getId(), body.username());
+        return meBody(user, null);
     }
 
     // ---------------------------------------------------------------- helpers
