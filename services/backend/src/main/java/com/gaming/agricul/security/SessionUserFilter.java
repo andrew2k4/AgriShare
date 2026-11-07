@@ -3,13 +3,11 @@ package com.gaming.agricul.security;
 import com.gaming.agricul.AppUser;
 import com.gaming.agricul.UserStatus;
 import com.gaming.agricul.repository.AppUserRepository;
-import com.google.firebase.auth.FirebaseToken;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,14 +20,10 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Runs after the session (or Firebase token) has been read:
- * <ul>
- *   <li>Session users are reloaded from the database. A deleted, suspended or not-yet-active
- *       account, or a session older than the absolute limit, is signed out (the session is
- *       deleted and the request continues unauthenticated). Otherwise the request runs with
- *       the user's current role. The stored session is not modified.</li>
- *   <li>Firebase users whose account was suspended get a 403.</li>
- * </ul>
+ * Runs after the session has been read. The user is reloaded from the database: a deleted,
+ * suspended or not-yet-active account, or a session older than the absolute limit, is signed
+ * out (the session is deleted and the request continues unauthenticated). Otherwise the
+ * request runs with the user's current role. The stored session is not modified.
  */
 public class SessionUserFilter extends OncePerRequestFilter {
 
@@ -65,15 +59,6 @@ public class SessionUserFilter extends OncePerRequestFilter {
                 SecurityContext context = holder.createEmptyContext();
                 context.setAuthentication(SessionAuthentication.withRole(user.get().getId(), user.get().getRole()));
                 holder.setContext(context);
-            }
-        } else if (authentication != null && authentication.getPrincipal() instanceof FirebaseToken token) {
-            boolean suspended = appUserRepository.findByFirebaseUid(token.getUid())
-                    .map(u -> u.getStatus() == UserStatus.SUSPENDED)
-                    .orElse(false);
-            if (suspended) {
-                holder.clearContext();
-                ApiErrorWriter.write(response, HttpStatus.FORBIDDEN, "ACCOUNT_SUSPENDED", "This account is suspended");
-                return;
             }
         }
         chain.doFilter(request, response);

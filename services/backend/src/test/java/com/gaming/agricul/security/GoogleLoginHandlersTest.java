@@ -39,7 +39,8 @@ class GoogleLoginHandlersTest {
     private final GoogleLoginService googleLoginService = mock(GoogleLoginService.class);
     private final SessionService sessionService = mock(SessionService.class);
     private final SessionLogin sessionLogin =
-            new SessionLogin(new HttpSessionSecurityContextRepository(), new CookieCsrfTokenRepository());
+            new SessionLogin(new HttpSessionSecurityContextRepository(), new CookieCsrfTokenRepository(),
+                    new AdminBootstrap("", null));
     private final GoogleLoginHandlers handlers =
             new GoogleLoginHandlers(googleLoginService, sessionService, sessionLogin, "https://app.agrishare.farm/");
 

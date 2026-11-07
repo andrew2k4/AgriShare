@@ -25,6 +25,9 @@ services:
       - "8000:8000"
     env_file:
       - .env.template
+      # Personal overrides (BOOTSTRAP_ADMIN_EMAIL, Google dev client...), gitignored
+      - path: .env
+        required: false
     depends_on:
       db:
         condition: service_healthy

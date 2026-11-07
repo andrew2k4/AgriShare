@@ -122,6 +122,7 @@ export const api = {
     set: (body: SetFinancialParameterRequest) => apiClient.PUT('/api/admin/financial-parameters', { body }),
   },
 
+  // Sign-in, sessions and passwords: see src/auth (AuthProvider) and the auth pages
   auth: {
     me: () => apiClient.GET('/api/auth/me'),
   },

@@ -31,36 +31,8 @@ class AppUserServiceTest {
     @InjectMocks
     private AppUserService appUserService;
 
-    @Test
-    void findOrCreateByUid_returnsExistingUser_whenAlreadyProvisioned() {
-        AppUser existing = existingUser(Role.MANAGER);
-        when(appUserRepository.findByFirebaseUid("uid-1")).thenReturn(Optional.of(existing));
 
-        AppUser result = appUserService.findOrCreateByUid("uid-1", "a@b.com", "Alice", true);
 
-        assertThat(result).isEqualTo(existing);
-    }
-
-    @Test
-    void findOrCreateByUid_defaultsToInvestorRole_forRegularFirebaseUser() {
-        when(appUserRepository.findByFirebaseUid("uid-2")).thenReturn(Optional.empty());
-        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        AppUser result = appUserService.findOrCreateByUid("uid-2", "b@c.com", "Bob", false);
-
-        assertThat(result.getRole()).isEqualTo(Role.INVESTOR);
-        assertThat(result.getFirebaseUid()).isEqualTo("uid-2");
-    }
-
-    @Test
-    void findOrCreateByUid_defaultsToAdminRole_forDevUserFallback() {
-        when(appUserRepository.findByFirebaseUid("dev-user")).thenReturn(Optional.empty());
-        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        AppUser result = appUserService.findOrCreateByUid("dev-user", null, "Dev User", false);
-
-        assertThat(result.getRole()).isEqualTo(Role.ADMIN);
-    }
 
     @Test
     void updateRole_changesRoleAndPersists() {
@@ -83,53 +55,9 @@ class AppUserServiceTest {
                 .hasMessageContaining("99");
     }
 
-    @Test
-    void findOrCreateByUid_storesTheEmailLowerCased() {
-        when(appUserRepository.findByFirebaseUid("uid-3")).thenReturn(Optional.empty());
-        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        AppUser result = appUserService.findOrCreateByUid("uid-3", " Carol@Example.COM ", "Carol", true);
 
-        assertThat(result.getEmail()).isEqualTo("carol@example.com");
-        assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
-        assertThat(result.isEmailVerified()).isTrue();
-    }
 
-    @Test
-    void findOrCreateByUid_doesNotMarkAnUnverifiedProviderEmailAsVerified() {
-        when(appUserRepository.findByFirebaseUid("uid-4")).thenReturn(Optional.empty());
-        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        AppUser result = appUserService.findOrCreateByUid("uid-4", "dan@example.com", "Dan", false);
-
-        assertThat(result.getEmail()).isEqualTo("dan@example.com");
-        assertThat(result.isEmailVerified()).isFalse();
-    }
-
-    @Test
-    void findOrCreateByUid_provisionsWithoutEmail_whenTheEmailBelongsToAnotherAccount() {
-        // e.g. a Firebase account deleted and re-created under a new UID
-        when(appUserRepository.findByFirebaseUid("uid-new")).thenReturn(Optional.empty());
-        AppUser holder = AppUser.create("alice@example.com", "Alice", Role.INVESTOR, UserStatus.ACTIVE);
-        when(appUserRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(holder));
-        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        AppUser result = appUserService.findOrCreateByUid("uid-new", "Alice@example.com", "Alice", true);
-
-        assertThat(result.getEmail()).isNull();
-        assertThat(result.isEmailVerified()).isFalse();
-        assertThat(result.getFirebaseUid()).isEqualTo("uid-new");
-    }
-
-    @Test
-    void findOrCreateByUid_acceptsProviderEmailsOurOwnFormRulesWouldReject() {
-        when(appUserRepository.findByFirebaseUid("uid-5")).thenReturn(Optional.empty());
-        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        AppUser result = appUserService.findOrCreateByUid("uid-5", "admin@localhost", "Admin", true);
-
-        assertThat(result.getEmail()).isEqualTo("admin@localhost");
-    }
 
     @Test
     void reactivate_sendsAnUnconfirmedLocalAccountBackToPending() {
@@ -161,33 +89,7 @@ class AppUserServiceTest {
         assertThatThrownBy(() -> appUserService.reactivate(7L)).isInstanceOf(BusinessRuleException.class);
     }
 
-    @Test
-    void findOrCreateByUid_takesTheEmailFromAnUnconfirmedRegistration_whenFirebaseVerifiedIt() {
-        AppUser squatter = AppUser.create("victim@example.com", "Squatter", Role.INVESTOR, UserStatus.PENDING);
-        squatter.setId(9L);
-        when(appUserRepository.findByFirebaseUid("uid-victim")).thenReturn(Optional.empty());
-        when(appUserRepository.findByEmail("victim@example.com")).thenReturn(Optional.of(squatter));
-        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        AppUser result = appUserService.findOrCreateByUid("uid-victim", "victim@example.com", "Victim", true);
-
-        verify(appUserRepository).delete(squatter);
-        assertThat(result.getEmail()).isEqualTo("victim@example.com");
-        assertThat(result.isEmailVerified()).isTrue();
-    }
-
-    @Test
-    void findOrCreateByUid_keepsAnUnconfirmedRegistration_whenFirebaseDidNotVerifyEither() {
-        AppUser pending = AppUser.create("x@example.com", "X", Role.INVESTOR, UserStatus.PENDING);
-        when(appUserRepository.findByFirebaseUid("uid-x")).thenReturn(Optional.empty());
-        when(appUserRepository.findByEmail("x@example.com")).thenReturn(Optional.of(pending));
-        when(appUserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        AppUser result = appUserService.findOrCreateByUid("uid-x", "x@example.com", "X", false);
-
-        verify(appUserRepository, never()).delete(any());
-        assertThat(result.getEmail()).isNull();
-    }
 
     private static AppUser existingUser(Role role) {
         AppUser user = AppUser.create("a@b.com", "Alice", role, UserStatus.ACTIVE);

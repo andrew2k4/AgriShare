@@ -229,8 +229,8 @@ public class AuthService {
     }
 
     /**
-     * Requires the current password. An account without one (Google-only, or not migrated from
-     * Firebase yet) must use the reset e-mail: otherwise whoever holds a stolen session could
+     * Requires the current password. An account without one (e.g. Google-only) must use the
+     * reset e-mail: otherwise whoever holds a stolen session could
      * add a password and keep access after the session is revoked.
      */
     @Transactional(noRollbackFor = AuthException.class)

@@ -1,6 +1,7 @@
 package com.gaming.agricul.repository;
 
 import com.gaming.agricul.AppUser;
+import com.gaming.agricul.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,7 +18,7 @@ import java.util.Optional;
 @Repository
 public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
-    Optional<AppUser> findByFirebaseUid(String firebaseUid);
+    boolean existsByRole(Role role);
 
     @Query("SELECT u FROM AppUser u WHERE lower(u.email) = :email")
     Optional<AppUser> findByEmail(@Param("email") String normalizedEmail);

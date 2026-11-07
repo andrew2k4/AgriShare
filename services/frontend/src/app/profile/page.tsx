@@ -1,25 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Shield, LogOut, Settings, Bell, FileText, Loader2 } from "lucide-react";
+import { User, Mail, Shield, LogOut, Settings, FileText, Loader2, AtSign, BadgeCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useUser, useAuth } from "@/firebase";
-import { signOut } from "firebase/auth";
-import { useRouter } from "next/navigation";
+import { ROLE_LABELS, useSession } from "@/auth/AuthProvider";
+import { PasswordCard } from "@/components/auth/PasswordCard";
+import { SessionsCard } from "@/components/auth/SessionsCard";
 
 export default function ProfilePage() {
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-  const router = useRouter();
+  const { user, isLoading, logout } = useSession();
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/login");
-  };
-
-  if (isUserLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -28,7 +22,7 @@ export default function ProfilePage() {
   }
 
   if (!user) {
-    router.push("/login");
+    // The session provider sends signed-out visitors to /login
     return null;
   }
 
@@ -50,48 +44,45 @@ export default function ProfilePage() {
                     <User className="h-12 w-12" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">{user.displayName || "Utilisateur"}</h2>
-                    <Badge className="bg-primary hover:bg-primary/90 mt-1">Investisseur</Badge>
+                    <h2 className="text-xl font-bold">{user.name || user.username || "Utilisateur"}</h2>
+                    <Badge className="bg-primary hover:bg-primary/90 mt-1">{ROLE_LABELS[user.role] ?? user.role}</Badge>
                   </div>
                   <div className="w-full pt-4 space-y-2">
+                    {user.username ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
+                        <AtSign className="h-4 w-4" />
+                        {user.username}
+                      </div>
+                    ) : (
+                      <Link href="/choose-username" className="flex items-center gap-2 text-sm text-primary hover:underline justify-center">
+                        <AtSign className="h-4 w-4" />
+                        Choisir un nom d'utilisateur
+                      </Link>
+                    )}
                     <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
                       <Mail className="h-4 w-4" />
                       {user.email}
+                      {user.emailVerified && <BadgeCheck className="h-4 w-4 text-primary" aria-label="Adresse vérifiée" />}
                     </div>
                   </div>
-                  <Button variant="outline" className="w-full border-primary text-primary mt-4">
-                    Modifier Profil
-                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Paramètres rapides</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                 <Button variant="ghost" className="w-full justify-start gap-3 h-12">
-                   <Bell className="h-5 w-5 text-muted-foreground" />
-                   Notifications
-                 </Button>
-                 <Button variant="ghost" className="w-full justify-start gap-3 h-12">
-                   <Shield className="h-5 w-5 text-muted-foreground" />
-                   Sécurité & MDP
-                 </Button>
-                 <Button 
-                   variant="ghost" 
-                   className="w-full justify-start gap-3 h-12 text-destructive hover:text-destructive hover:bg-destructive/5"
-                   onClick={handleLogout}
-                 >
-                   <LogOut className="h-5 w-5" />
-                   Déconnexion
-                 </Button>
-              </CardContent>
-            </Card>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-12 text-destructive hover:text-destructive hover:bg-destructive/5"
+              onClick={logout}
+            >
+              <LogOut className="h-5 w-5" />
+              Déconnexion
+            </Button>
           </div>
 
           <div className="md:col-span-2 space-y-6">
+            <PasswordCard />
+            <SessionsCard />
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -112,6 +103,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
+                {user.role === "ADMIN" && (
                 <div className="p-6 border rounded-lg bg-primary/5 border-primary/20">
                   <h4 className="font-bold text-sm text-primary flex items-center gap-2 mb-2">
                     <Shield className="h-4 w-4" /> Mode Administrateur
@@ -121,6 +113,7 @@ export default function ProfilePage() {
                     Toutes les modifications sont tracées pour assurer la transparence envers les co-investisseurs.
                   </p>
                 </div>
+                )}
               </CardContent>
             </Card>
 

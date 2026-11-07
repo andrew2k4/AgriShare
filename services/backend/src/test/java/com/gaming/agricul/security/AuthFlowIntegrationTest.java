@@ -7,8 +7,6 @@ import com.gaming.agricul.mail.AccountAlreadyExistsNotice;
 import com.gaming.agricul.mail.EmailVerificationRequested;
 import com.gaming.agricul.mail.PasswordResetRequested;
 import com.gaming.agricul.repository.AppUserRepository;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.auth.FirebaseAuth;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,12 +36,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * End-to-end tests of local accounts and sessions through the real security chain (the
- * secured one: firebase.enabled=true, with Firebase itself mocked out), real cookies, CSRF
- * and Spring Session on H2.
+ * End-to-end tests of local accounts and sessions through the real security chain, real
+ * cookies, CSRF and Spring Session on H2.
  */
-// The service account is never read: FirebaseApp and FirebaseAuth are mocked below
-@SpringBootTest(properties = {"firebase.enabled=true", "firebase.service-account-path=classpath:unused.json"})
+@SpringBootTest
 @AutoConfigureMockMvc
 @RecordApplicationEvents
 class AuthFlowIntegrationTest {
@@ -63,11 +58,7 @@ class AuthFlowIntegrationTest {
     @Autowired
     private AppUserRepository users;
 
-    @MockitoBean
-    private FirebaseApp firebaseApp;
 
-    @MockitoBean
-    private FirebaseAuth firebaseAuth;
 
     /** Unique per test: rate-limit counters are keyed by IP and must not leak between tests. */
     private String clientIp;

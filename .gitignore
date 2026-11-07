@@ -3,3 +3,4 @@ node_modules/
 .DS_Store
 secrets/
 deployment/prod/.env
+deployment/dev/.env

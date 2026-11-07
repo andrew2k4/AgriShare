@@ -42,7 +42,7 @@ public class ProfitDistributionController {
 
     @PostMapping("/projects/{projectId}/distributions")
     @Operation(summary = "Propose a new profit distribution for a project and period (Admin/Manager only)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Distribution proposed",
                     content = @Content(schema = @Schema(implementation = ProfitDistributionDto.class))),
@@ -60,7 +60,7 @@ public class ProfitDistributionController {
 
     @PostMapping("/distributions/{id}/validate")
     @Operation(summary = "Validate a proposed distribution (must be a different Admin/Manager than the proposer)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Distribution validated",
                     content = @Content(schema = @Schema(implementation = ProfitDistributionDto.class))),
@@ -77,7 +77,7 @@ public class ProfitDistributionController {
 
     @PostMapping("/distributions/{id}/reject")
     @Operation(summary = "Reject a proposed distribution (must be a different Admin/Manager than the proposer)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Distribution rejected",
                     content = @Content(schema = @Schema(implementation = ProfitDistributionDto.class))),

@@ -38,7 +38,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { useUser } from "@/firebase";
+import { useSession } from "@/auth/AuthProvider";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/api/api";
@@ -50,7 +50,7 @@ interface InitialInvestor {
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user } = useSession();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({

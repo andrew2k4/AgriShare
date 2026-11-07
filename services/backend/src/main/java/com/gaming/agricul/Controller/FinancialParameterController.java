@@ -37,7 +37,7 @@ public class FinancialParameterController {
 
     @GetMapping
     @Operation(summary = "List the global default coefficients (Admin only)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponse(responseCode = "200", description = "List of parameters",
             content = @Content(array = @ArraySchema(schema = @Schema(implementation = FinancialParameterDto.class))))
     public ResponseEntity<List<FinancialParameterDto>> listGlobalDefaults(Authentication authentication) {
@@ -48,7 +48,7 @@ public class FinancialParameterController {
 
     @PutMapping
     @Operation(summary = "Set (create or override) a coefficient, globally or for one project (Admin only)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponse(responseCode = "200", description = "Parameter updated",
             content = @Content(schema = @Schema(implementation = FinancialParameterDto.class)))
     public ResponseEntity<FinancialParameterDto> setParameter(

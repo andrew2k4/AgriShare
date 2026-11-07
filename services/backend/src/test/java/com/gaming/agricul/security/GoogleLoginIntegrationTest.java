@@ -1,12 +1,9 @@
 package com.gaming.agricul.security;
 
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.auth.FirebaseAuth;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -17,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /** The Google flow with a client configured; Google itself is not called. */
 @SpringBootTest(properties = {
-        "firebase.enabled=true", "firebase.service-account-path=classpath:unused.json",
         "app.google.client-id=test-client.apps.googleusercontent.com", "app.google.client-secret=test-secret"})
 @AutoConfigureMockMvc
 class GoogleLoginIntegrationTest {
@@ -25,11 +21,7 @@ class GoogleLoginIntegrationTest {
     @Autowired
     private MockMvc mvc;
 
-    @MockitoBean
-    private FirebaseApp firebaseApp;
 
-    @MockitoBean
-    private FirebaseAuth firebaseAuth;
 
     @Test
     void startingTheFlow_redirectsToGoogle_withPkceAndTheBasicScopesOnly() throws Exception {

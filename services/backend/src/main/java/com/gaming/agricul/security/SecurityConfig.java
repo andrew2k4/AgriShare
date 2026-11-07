@@ -1,10 +1,8 @@
 package com.gaming.agricul.security;
 
 import com.gaming.agricul.repository.AppUserRepository;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -34,18 +32,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Two ways to authenticate coexist until the frontend leaves Firebase:
- * <ul>
- *   <li>a Firebase ID token in "Authorization: Bearer" (stateless, as before);</li>
- *   <li>a server-side session (cookie) opened by /api/auth/login.</li>
- * </ul>
+ * Authentication is a server-side session (cookie) opened by /api/auth/login or the Google
+ * sign-in. Every other request needs that session.
  *
  * <p>CSRF protection (double submit: a cookie plus the X-XSRF-TOKEN header, token from
- * GET /api/auth/csrf) applies to every state-changing request except Bearer ones: a page
- * on another site cannot add an Authorization header without passing CORS, which only
- * allows our own origins.
+ * GET /api/auth/csrf) applies to every state-changing request.
  */
-@Slf4j
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -77,17 +69,8 @@ public class SecurityConfig {
 
     private final RateLimiter rateLimiter;
 
-    /**
-     * Only "true" and "false" select a filter chain below. Any other value (e.g. "yes",
-     * "ture") would match neither and leave Spring Boot's default chain in place, so it is
-     * rejected at startup instead.
-     */
-    public SecurityConfig(@Value("${firebase.enabled:true}") String firebaseEnabled, RateLimiter rateLimiter) {
+    public SecurityConfig(RateLimiter rateLimiter) {
         this.rateLimiter = rateLimiter;
-        if (!"true".equalsIgnoreCase(firebaseEnabled.trim()) && !"false".equalsIgnoreCase(firebaseEnabled.trim())) {
-            throw new IllegalStateException(
-                    "firebase.enabled must be 'true' or 'false', got '" + firebaseEnabled + "'");
-        }
     }
 
     @Bean
@@ -138,36 +121,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "firebase.enabled", havingValue = "true", matchIfMissing = true)
-    public SecurityFilterChain firebaseFilterChain(HttpSecurity http, FirebaseTokenFilter firebaseTokenFilter,
-                                                   AppUserRepository appUserRepository,
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AppUserRepository appUserRepository,
                                                    CookieCsrfTokenRepository csrfTokenRepository,
                                                    ObjectProvider<ClientRegistrationRepository> google,
                                                    GoogleLoginHandlers googleHandlers) throws Exception {
         common(http, appUserRepository, csrfTokenRepository, google, googleHandlers)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                        .anyRequest().authenticated())
-                .addFilterBefore(firebaseTokenFilter, UsernamePasswordAuthenticationFilter.class);
-        return http.build();
-    }
-
-    /**
-     * Insecure dev chain: every request is let through, and one without a session runs as the
-     * ADMIN "dev-user". Only active when firebase.enabled is explicitly set to false. A missing
-     * setting falls back to the secured chain above (fail closed); any other value stops the
-     * startup.
-     */
-    @Bean
-    @ConditionalOnProperty(name = "firebase.enabled", havingValue = "false")
-    public SecurityFilterChain devFilterChain(HttpSecurity http, AppUserRepository appUserRepository,
-                                              CookieCsrfTokenRepository csrfTokenRepository,
-                                              ObjectProvider<ClientRegistrationRepository> google,
-                                              GoogleLoginHandlers googleHandlers) throws Exception {
-        log.warn("SECURITY DISABLED: firebase.enabled=false, every request without a session runs as the "
-                + "ADMIN dev-user. Never use this setting outside local development.");
-        common(http, appUserRepository, csrfTokenRepository, google, googleHandlers)
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+                        .anyRequest().authenticated());
         return http.build();
     }
 
@@ -228,13 +189,7 @@ public class SecurityConfig {
     }
 
     static RequestMatcher csrfRequired() {
-        return request -> {
-            if (SAFE_METHODS.contains(request.getMethod())) {
-                return false;
-            }
-            String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-            return authorization == null || !authorization.startsWith("Bearer ");
-        };
+        return request -> !SAFE_METHODS.contains(request.getMethod());
     }
 
     private static String cookieName(String base, boolean secure) {

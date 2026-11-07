@@ -9,7 +9,6 @@ import com.gaming.agricul.security.CurrentUserResolver;
 import com.gaming.agricul.security.SessionLogin;
 import com.gaming.agricul.service.AuthService;
 import com.gaming.agricul.service.SessionService;
-import com.google.firebase.auth.FirebaseToken;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -96,7 +95,7 @@ public class AuthController {
                                      HttpServletRequest request, HttpServletResponse response) {
         AppUser user = authService.authenticate(body.identifier(), body.password(), ClientIp.of(request));
         sessionLogin.open(user, request, response);
-        return meBody(user, null);
+        return meBody(user);
     }
 
     @PostMapping("/logout")
@@ -114,11 +113,9 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "The current user, including their role", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "The current user, including their role", security = @SecurityRequirement(name = "session"))
     public Map<String, Object> me(Authentication authentication) {
-        AppUser appUser = currentUserResolver.resolve(authentication);
-        FirebaseToken token = authentication != null && authentication.getPrincipal() instanceof FirebaseToken t ? t : null;
-        return meBody(appUser, token);
+        return meBody(currentUserResolver.resolve(authentication));
     }
 
     // ---------------------------------------------------------------- sessions
@@ -174,23 +171,19 @@ public class AuthController {
     @Operation(summary = "Choose a username, once, for an account that has none (e.g. created with Google)")
     public Map<String, Object> chooseUsername(@RequestBody AuthRequests.Username body, Authentication authentication) {
         AppUser user = authService.chooseUsername(currentUserResolver.resolve(authentication).getId(), body.username());
-        return meBody(user, null);
+        return meBody(user);
     }
 
     // ---------------------------------------------------------------- helpers
 
-    private static Map<String, Object> meBody(AppUser user, FirebaseToken token) {
+    private static Map<String, Object> meBody(AppUser user) {
         // LinkedHashMap, not Map.of: several fields can be null
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("id", user.getId());
-        body.put("uid", user.getFirebaseUid());
         body.put("username", user.getUsername());
-        body.put("email", token != null && token.getEmail() != null ? token.getEmail()
-                : Objects.requireNonNullElse(user.getEmail(), ""));
+        body.put("email", Objects.requireNonNullElse(user.getEmail(), ""));
         body.put("emailVerified", user.isEmailVerified());
-        body.put("name", token != null && token.getName() != null ? token.getName()
-                : Objects.requireNonNullElse(user.getDisplayName(), ""));
-        body.put("picture", token != null && token.getPicture() != null ? token.getPicture() : "");
+        body.put("name", Objects.requireNonNullElse(user.getDisplayName(), ""));
         body.put("role", user.getRole());
         body.put("hasPassword", user.hasPassword());
         return body;

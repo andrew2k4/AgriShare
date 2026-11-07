@@ -42,7 +42,7 @@ public class WithdrawalController {
 
     @PostMapping("/contributions/{contributionId}/withdrawals")
     @Operation(summary = "Request a capital withdrawal from a contribution (Admin/Manager only)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Withdrawal requested (may be BLOCKED if the project cannot absorb it)",
                     content = @Content(schema = @Schema(implementation = WithdrawalDto.class))),
@@ -60,7 +60,7 @@ public class WithdrawalController {
 
     @PostMapping("/withdrawals/{id}/validate")
     @Operation(summary = "Validate a requested withdrawal (must be a different Admin/Manager than the requester)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Withdrawal validated",
                     content = @Content(schema = @Schema(implementation = WithdrawalDto.class))),
@@ -77,7 +77,7 @@ public class WithdrawalController {
 
     @PostMapping("/withdrawals/{id}/reject")
     @Operation(summary = "Reject a requested withdrawal (must be a different Admin/Manager than the requester)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Withdrawal rejected",
                     content = @Content(schema = @Schema(implementation = WithdrawalDto.class))),

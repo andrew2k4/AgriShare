@@ -23,8 +23,11 @@ public class SessionLogin {
     private final SecurityContextHolderStrategy holder = SecurityContextHolder.getContextHolderStrategy();
     private final SecurityContextRepository securityContextRepository;
     private final CsrfTokenRepository csrfTokenRepository;
+    private final AdminBootstrap adminBootstrap;
 
     public void open(AppUser user, HttpServletRequest request, HttpServletResponse response) {
+        adminBootstrap.apply(user);
+
         // New session id at login (session fixation): drop whatever session existed before
         HttpSession previous = request.getSession(false);
         if (previous != null) {

@@ -44,7 +44,7 @@ public class ProjectController {
 
     @GetMapping
     @Operation(summary = "Retrieve all projects owned by the authenticated user",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponse(responseCode = "200", description = "List of projects",
             content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProjectDto.class))))
     public ResponseEntity<List<ProjectDto>> findAll(Authentication authentication) {
@@ -66,7 +66,7 @@ public class ProjectController {
 
     @PostMapping
     @Operation(summary = "Create a new project linked to the authenticated user",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Project created",
                     content = @Content(schema = @Schema(implementation = ProjectDto.class))),

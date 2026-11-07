@@ -43,6 +43,7 @@ class GoogleLoginServiceTest {
     @Mock
     private ProjectRepository projectRepository;
 
+
     @InjectMocks
     private GoogleLoginService service;
 
@@ -141,7 +142,7 @@ class GoogleLoginServiceTest {
     }
 
     @Test
-    void unverifiedFirebaseAccount_goesToTheGoogleUser_andItsFirebaseLoginIsDetached() {
+    void unverifiedFormerFirebaseAccount_goesToTheGoogleUser_andItsProjectsFollow() {
         AppUser firebase = user(10L, "owner@example.com", UserStatus.ACTIVE, false);
         firebase.setFirebaseUid("fb-10");
         firebase.setUsername("owner");
@@ -151,11 +152,11 @@ class GoogleLoginServiceTest {
         AppUser result = login.user();
 
         assertThat(result.isEmailVerified()).isTrue();
-        // Whoever created the Firebase account can no longer reach this one with a Firebase token
         assertThat(result.getFirebaseUid()).isNull();
-        // ...and the account keeps its projects, now under its local key
+        // The account keeps its projects, now under its local key
         verify(projectRepository).reassignOwner("fb-10", "app-user:10");
-        assertThat(login.revokeExistingSessions()).isTrue();
+        // No password: nobody else could have a session on it
+        assertThat(login.revokeExistingSessions()).isFalse();
     }
 
     @Test

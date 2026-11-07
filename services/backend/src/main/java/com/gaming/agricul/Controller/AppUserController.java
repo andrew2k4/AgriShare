@@ -44,7 +44,7 @@ public class AppUserController {
 
     @GetMapping
     @Operation(summary = "Retrieve all application users (Admin only)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponse(responseCode = "200", description = "List of users",
             content = @Content(array = @ArraySchema(schema = @Schema(implementation = AppUserDto.class))))
     public ResponseEntity<List<AppUserDto>> findAll(Authentication authentication) {
@@ -54,7 +54,7 @@ public class AppUserController {
 
     @PutMapping("/{id}/role")
     @Operation(summary = "Assign a role to a user (Admin only)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Role updated",
                     content = @Content(schema = @Schema(implementation = AppUserDto.class))),
@@ -71,7 +71,7 @@ public class AppUserController {
 
     @PostMapping("/{id}/suspend")
     @Operation(summary = "Suspend a user: they can no longer sign in and all their sessions end (Admin only)",
-               security = @SecurityRequirement(name = "bearerAuth"))
+               security = @SecurityRequirement(name = "session"))
     public ResponseEntity<AppUserDto> suspend(
             @Parameter(description = "User identifier", required = true) @PathVariable Long id,
             Authentication authentication) {
@@ -85,7 +85,7 @@ public class AppUserController {
     }
 
     @PostMapping("/{id}/reactivate")
-    @Operation(summary = "Lift a suspension; an account whose e-mail was never confirmed goes back to pending (Admin only)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Lift a suspension; an account whose e-mail was never confirmed goes back to pending (Admin only)", security = @SecurityRequirement(name = "session"))
     public ResponseEntity<AppUserDto> reactivate(
             @Parameter(description = "User identifier", required = true) @PathVariable Long id,
             Authentication authentication) {

@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   Wallet, 
@@ -23,8 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useUser, useAuth } from "@/firebase";
-import { signOut } from "firebase/auth";
+import { useSession } from "@/auth/AuthProvider";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -38,18 +37,12 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useUser();
-  const auth = useAuth();
+  const { user, logout } = useSession();
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push("/login");
-    } catch (error) {
-      console.error("Logout error", error);
-    }
+  const handleLogout = () => {
+    setIsOpen(false);
+    void logout();
   };
 
   return (

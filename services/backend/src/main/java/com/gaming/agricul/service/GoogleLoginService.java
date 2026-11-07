@@ -32,9 +32,9 @@ import java.util.Optional;
  *   <li>the account has a verified address too: it is linked, unless it is already linked to
  *       another Google account (the address now belongs to someone else);</li>
  *   <li>the account never proved it owns the address (an unconfirmed registration, or a
- *       Firebase account whose address was not verified): Google just proved it, so the
- *       account goes to the Google user. Its password and its Firebase login are removed and
- *       its sessions end, so whoever created it with someone else's address loses access.</li>
+ *       former Firebase account whose address was not verified): Google just proved it, so
+ *       the account goes to the Google user. Its password is removed and its sessions end, so
+ *       whoever created it with someone else's address loses access.</li>
  * </ul>
  */
 @Slf4j
@@ -108,14 +108,14 @@ public class GoogleLoginService {
     /** Returns true when someone else could hold a session of this account. */
     private boolean takeOver(AppUser user, String fullName) {
         log.warn("Account {} never proved it owns its e-mail; handing it to the verified Google user", user.getId());
-        boolean someoneElseCouldSignIn = user.hasPassword() || user.getFirebaseUid() != null;
+        boolean someoneElseCouldSignIn = user.hasPassword();
         user.setPasswordHash(null);
         user.setFailedLoginCount(0);
         user.setLockedUntil(null);
         user.setEmailVerifiedAt(Instant.now());
         if (user.getFirebaseUid() != null) {
-            // Without this, whoever created the Firebase account would still reach this account
-            // with a Firebase token. Its projects move to the key of the local account.
+            // Former Firebase account: its projects move to the key of the local account, so
+            // nothing is left keyed by the old Firebase UID.
             String newOwner = CurrentUserResolver.ownerKey(withoutFirebase(user));
             int moved = projectRepository.reassignOwner(user.getFirebaseUid(), newOwner);
             log.info("Detached Firebase UID from account {}, {} project(s) moved to {}", user.getId(), moved, newOwner);

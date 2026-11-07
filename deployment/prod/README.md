@@ -8,11 +8,11 @@ TLS with a Cloudflare Origin Certificate. `app.agrishare.farm` → frontend,
 
 1. Clone the repo to `/opt/agrishare/repo`.
 2. Create `/opt/agrishare/repo/secrets/` (gitignored) containing:
-   - `firebase-service-account.json` — Firebase Admin SDK service account key.
    - `cloudflare-origin.pem` — Cloudflare Origin Certificate (public cert).
    - `cloudflare-origin.key` — its private key.
 3. Copy `deployment/prod/.env.example` to `deployment/prod/.env` and fill in real values
-   (DB password, `CORS_ALLOWED_ORIGINS`, `NEXT_PUBLIC_API_URL`).
+   (DB password, `CORS_ALLOWED_ORIGINS`, `NEXT_PUBLIC_API_URL`, SMTP, Google client,
+   `BOOTSTRAP_ADMIN_EMAIL`).
 4. `cd deployment/prod && docker compose up -d --build`
 
 ## Redeploying after a push to `main`
@@ -32,3 +32,10 @@ TLS with a Cloudflare Origin Certificate. `app.agrishare.farm` → frontend,
 - Nginx only accepts the Cloudflare Origin Certificate; the VPS firewall should
   ideally also restrict ports 80/443 to Cloudflare's published IP ranges so the
   origin can't be hit directly, bypassing Cloudflare.
+
+## Accounts
+
+Sign-in is handled by the backend (e-mail or username + password, or Google), with
+server-side sessions in Postgres. To get the first administrator in, set
+`BOOTSTRAP_ADMIN_EMAIL`, register (or sign in with Google) with that address and confirm it:
+the account becomes ADMIN at its first login.
