@@ -91,7 +91,7 @@ export function LandingPage() {
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2">
                 <Sprout className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold text-primary">
-                  L'Agro-pastoral Moderne au Cameroun
+                  L'investissement agro-pastoral, en toute transparence
                 </span>
               </div>
 
@@ -131,13 +131,13 @@ export function LandingPage() {
 
             <div className="relative">
               <Image
-                // TODO: placeholder — à remplacer par la photo finale du hero
-                src="https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1400&q=80"
-                alt="Investisseur contemplant un lac de montagne"
-                width={1400}
-                height={900}
+                src="/images/ferme.jpg"
+                alt="Poules pondeuses dans un nid de paille, entourées de leurs œufs"
+                width={2000}
+                height={1083}
                 priority
-                className="aspect-[3/2] w-full rounded-2xl object-cover shadow-2xl"
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                className="aspect-[3/2] w-full rounded-2xl object-cover object-[40%_50%] shadow-2xl"
               />
             </div>
           </div>
@@ -188,7 +188,7 @@ export function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="rounded-3xl bg-primary px-6 py-16 text-center sm:px-12 lg:px-16">
             <h2 className="text-3xl font-bold tracking-tight text-primary-foreground sm:text-4xl lg:text-5xl">
-              Prêt à transformer l'agriculture camerounaise ?
+              Prêt à faire fructifier l'agriculture de demain ?
             </h2>
 
             <div className="mx-auto mt-14 grid max-w-4xl grid-cols-2 gap-y-10 md:grid-cols-4">
@@ -233,8 +233,8 @@ export function LandingPage() {
             </Link>
 
             <p className="text-center text-sm text-muted-foreground">
-              © 2024 AgriShare. Tous droits réservés. Développé pour
-              l'agro-pastoral au Cameroun.
+              © {new Date().getFullYear()} AgriShare. Tous droits réservés. Développé pour
+              l'agro-pastoral, partout.
             </p>
 
             <div className="flex items-center gap-8">

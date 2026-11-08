@@ -38,7 +38,7 @@ export default function VeterinariansPage() {
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-primary">Experts Vétérinaires</h1>
-            <p className="text-muted-foreground">Trouvez des spécialistes vérifiés pour votre élevage au Cameroun.</p>
+            <p className="text-muted-foreground">Trouvez des spécialistes vérifiés pour votre élevage.</p>
           </div>
         </header>
 

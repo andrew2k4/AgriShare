@@ -4,8 +4,8 @@ import { AuthProvider } from '@/auth/AuthProvider';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'AgriShare - Gestion de Ferme Avicole',
-  description: 'Application de gestion transparente pour fermes de poules pondeuses au Cameroun.',
+  title: 'AgriShare – Investissement agro-pastoral transparent',
+  description: "Investissez dans des projets agricoles et d'élevage et suivez leurs résultats en toute transparence.",
 };
 
 export default function RootLayout({
