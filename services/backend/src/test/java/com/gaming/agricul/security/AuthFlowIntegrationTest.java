@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -374,6 +375,38 @@ class AuthFlowIntegrationTest {
     }
 
     @Test
+    void projects_canOnlyBeReadAndChangedByTheirOwner() throws Exception {
+        createActiveUser(email, username, PASSWORD);
+        createActiveUser("b-" + email, "b" + username, PASSWORD);
+        Cookie alice = sessionCookie(login(email, PASSWORD).andReturn());
+        Cookie bob = sessionCookie(login("b-" + email, PASSWORD).andReturn());
+        String aliceKey = "app-user:" + users.findByEmail(email).orElseThrow().getId();
+        String bobKey = "app-user:" + users.findByEmail("b-" + email).orElseThrow().getId();
+
+        String body = "{\"name\":\"Champ d'Alice\",\"projectType\":\"AGRICULTURE\",\"budget\":500000,\"landSize\":1000}";
+        Number id = JsonPath.read(postJson("/api/projects", body, alice)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
+        String url = "/api/projects/" + id;
+        String takeover = "{\"name\":\"Volé\",\"projectType\":\"AGRICULTURE\",\"ownerUid\":\"" + bobKey
+                + "\",\"status\":\"CLOSED\",\"resources\":{\"budget\":1,\"landSize\":1,\"existingStructures\":false}}";
+
+        // Someone else's project answers like a missing one
+        mvc.perform(get(url).cookie(bob)).andExpect(status().isNotFound());
+        sendJson(put(url), takeover, bob).andExpect(status().isNotFound());
+        postJson(url + "/close", "", bob).andExpect(status().isNotFound());
+        sendJson(delete(url), "", bob).andExpect(status().isNotFound());
+
+        // The owner can update it, but neither give it away nor close it through an update
+        sendJson(put(url), takeover, alice)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Volé"))
+                .andExpect(jsonPath("$.ownerUid").value(aliceKey))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+        mvc.perform(get(url).cookie(alice)).andExpect(status().isOk());
+        sendJson(delete(url), "", alice).andExpect(status().isNoContent());
+    }
+
+    @Test
     void invalidProjects_areRejectedWith400() throws Exception {
         createActiveUser(email, username, PASSWORD);
         Cookie alice = sessionCookie(login(email, PASSWORD).andReturn());
@@ -495,7 +528,11 @@ class AuthFlowIntegrationTest {
     }
 
     private ResultActions postJson(String url, String json, Cookie... cookies) throws Exception {
-        MockHttpServletRequestBuilder request = withCsrf(post(url), csrf()).content(json);
+        return sendJson(post(url), json, cookies);
+    }
+
+    private ResultActions sendJson(MockHttpServletRequestBuilder builder, String json, Cookie... cookies) throws Exception {
+        MockHttpServletRequestBuilder request = withCsrf(builder, csrf()).content(json);
         List<Cookie> all = new ArrayList<>(List.of(cookies));
         if (!all.isEmpty()) {
             all.add(lastCsrf.cookie());

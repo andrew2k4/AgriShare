@@ -1,5 +1,6 @@
 package com.gaming.agricul.Controller;
 
+import com.gaming.agricul.AppUser;
 import com.gaming.agricul.Project;
 import com.gaming.agricul.dto.CreateProjectRequest;
 import com.gaming.agricul.dto.ProjectDto;
@@ -53,15 +54,17 @@ public class ProjectController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Find a project by its id")
+    @Operation(summary = "Find a project by its id (own projects only, any project for an admin)",
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Project found",
                     content = @Content(schema = @Schema(implementation = ProjectDto.class))),
             @ApiResponse(responseCode = "404", description = "Project not found", content = @Content)
     })
     public ResponseEntity<ProjectDto> findById(
-            @Parameter(description = "Project identifier", required = true) @PathVariable Long id) {
-        return ResponseEntity.ok(projectMapper.toDto(projectService.findById(id)));
+            @Parameter(description = "Project identifier", required = true) @PathVariable Long id,
+            Authentication authentication) {
+        return ResponseEntity.ok(projectMapper.toDto(projectService.findAccessible(id, currentUser(authentication))));
     }
 
     @PostMapping
@@ -80,7 +83,8 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update an existing project")
+    @Operation(summary = "Update a project (own projects only, any project for an admin); owner and status are kept",
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Project updated",
                     content = @Content(schema = @Schema(implementation = ProjectDto.class))),
@@ -88,12 +92,14 @@ public class ProjectController {
     })
     public ResponseEntity<ProjectDto> update(
             @Parameter(description = "Project identifier", required = true) @PathVariable Long id,
-            @RequestBody ProjectDto dto) {
-        return ResponseEntity.ok(projectMapper.toDto(projectService.update(id, projectMapper.toEntity(dto))));
+            @RequestBody ProjectDto dto, Authentication authentication) {
+        return ResponseEntity.ok(projectMapper.toDto(
+                projectService.update(id, projectMapper.toEntity(dto), currentUser(authentication))));
     }
 
     @PostMapping("/{id}/close")
-    @Operation(summary = "Close a project; its capital assets must then be settled individually (see Assets)")
+    @Operation(summary = "Close a project (own projects only, any project for an admin); its capital assets must then be settled individually (see Assets)",
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Project closed",
                     content = @Content(schema = @Schema(implementation = ProjectDto.class))),
@@ -101,23 +107,31 @@ public class ProjectController {
             @ApiResponse(responseCode = "409", description = "Already closed", content = @Content)
     })
     public ResponseEntity<ProjectDto> close(
-            @Parameter(description = "Project identifier", required = true) @PathVariable Long id) {
+            @Parameter(description = "Project identifier", required = true) @PathVariable Long id,
+            Authentication authentication) {
+        projectService.findAccessible(id, currentUser(authentication));
         return ResponseEntity.ok(projectMapper.toDto(projectClosureService.close(id)));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a project")
+    @Operation(summary = "Delete a project (own projects only, any project for an admin)",
+               security = @SecurityRequirement(name = "session"))
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Project deleted"),
             @ApiResponse(responseCode = "404", description = "Project not found", content = @Content)
     })
     public ResponseEntity<Void> deleteById(
-            @Parameter(description = "Project identifier", required = true) @PathVariable Long id) {
-        projectService.deleteById(id);
+            @Parameter(description = "Project identifier", required = true) @PathVariable Long id,
+            Authentication authentication) {
+        projectService.delete(id, currentUser(authentication));
         return ResponseEntity.noContent().build();
     }
 
+    private AppUser currentUser(Authentication authentication) {
+        return currentUserResolver.resolve(authentication);
+    }
+
     private String extractUid(Authentication authentication) {
-        return CurrentUserResolver.ownerKey(currentUserResolver.resolve(authentication));
+        return CurrentUserResolver.ownerKey(currentUser(authentication));
     }
 }
