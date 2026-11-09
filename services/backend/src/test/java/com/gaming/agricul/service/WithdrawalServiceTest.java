@@ -5,6 +5,7 @@ import com.gaming.agricul.ContributionType;
 import com.gaming.agricul.Withdrawal;
 import com.gaming.agricul.WithdrawalStatus;
 import com.gaming.agricul.exception.BusinessRuleException;
+import com.gaming.agricul.exception.InvalidInputException;
 import com.gaming.agricul.exception.NotFoundException;
 import com.gaming.agricul.repository.ContributionRepository;
 import com.gaming.agricul.repository.OperationRepository;
@@ -98,7 +99,7 @@ class WithdrawalServiceTest {
     @Test
     void request_rejectsNonPositiveAmount() {
         assertThatThrownBy(() -> withdrawalService.request(1L, BigDecimal.ZERO, 1L))
-                .isInstanceOf(BusinessRuleException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 
     @Test

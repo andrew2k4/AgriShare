@@ -1,5 +1,6 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.Operation;
 import com.gaming.agricul.repository.OperationRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class OperationService {
     }
 
     public Operation save(Operation operation) {
+        validate(operation);
         return operationRepository.save(operation);
     }
 
@@ -39,8 +41,16 @@ public class OperationService {
         if (!operationRepository.existsById(id)) {
             throw new RuntimeException("Operation not found with id: " + id);
         }
+        validate(operation);
         operation.setId(id);
         return operationRepository.save(operation);
+    }
+
+    private static void validate(Operation operation) {
+        operation.setLabel(InputRules.text(operation.getLabel(), "label", InputRules.MAX_TEXT));
+        InputRules.pastOrToday(operation.getDate(), "date");
+        InputRules.number(operation.getAmount(), "amount", InputRules.MAX_AMOUNT.doubleValue(), false);
+        InputRules.required(operation.getOperationType(), "operationType");
     }
 
     public void deleteById(Long id) {

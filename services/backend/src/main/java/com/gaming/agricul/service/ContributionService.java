@@ -1,5 +1,7 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.exception.InvalidInputException;
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.Asset;
 import com.gaming.agricul.AssetOwnershipStatus;
 import com.gaming.agricul.Contribution;
@@ -75,12 +77,9 @@ public class ContributionService {
     public Contribution addContribution(
             Long projectId, Long investorId, ContributionType type, BigDecimal amount, LocalDate entryDate, Long assetId) {
         ContributionType effectiveType = type != null ? type : ContributionType.EQUITY;
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessRuleException("Contribution amount must be positive");
-        }
-        if (entryDate == null) {
-            throw new BusinessRuleException("Entry date is required");
-        }
+        InputRules.required(investorId, "investorId");
+        InputRules.positiveAmount(amount, "amount");
+        InputRules.pastOrToday(entryDate, "entryDate");
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("Project not found with id: " + projectId));
         if (!investorRepository.existsById(investorId)) {
@@ -90,7 +89,7 @@ public class ContributionService {
         if (effectiveType == ContributionType.IN_KIND) {
             assetId = transferAssetToCapital(assetId, projectId, investorId);
         } else if (assetId != null) {
-            throw new BusinessRuleException("assetId is only applicable to IN_KIND contributions");
+            throw new InvalidInputException("assetId is only applicable to IN_KIND contributions");
         }
 
         BigDecimal valuationBeforeEntry = currentProjectValue(projectId);
@@ -103,7 +102,7 @@ public class ContributionService {
 
     private Long transferAssetToCapital(Long assetId, Long projectId, Long investorId) {
         if (assetId == null) {
-            throw new BusinessRuleException("assetId is required for IN_KIND contributions");
+            throw new InvalidInputException("assetId is required for IN_KIND contributions");
         }
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new NotFoundException("Asset not found with id: " + assetId));

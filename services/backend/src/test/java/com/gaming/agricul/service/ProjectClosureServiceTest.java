@@ -7,6 +7,7 @@ import com.gaming.agricul.AssetType;
 import com.gaming.agricul.Project;
 import com.gaming.agricul.ProjectStatus;
 import com.gaming.agricul.exception.BusinessRuleException;
+import com.gaming.agricul.exception.InvalidInputException;
 import com.gaming.agricul.exception.NotFoundException;
 import com.gaming.agricul.repository.AssetRepository;
 import com.gaming.agricul.repository.OperationRepository;
@@ -127,6 +128,6 @@ class ProjectClosureServiceTest {
     @Test
     void disposeAsset_rejectsRetainedByInvestorWithoutBuyerId() {
         assertThatThrownBy(() -> service.disposeAsset(5L, AssetDisposition.RETAINED_BY_INVESTOR, new BigDecimal("1000"), null))
-                .isInstanceOf(BusinessRuleException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 }

@@ -9,6 +9,7 @@ import com.gaming.agricul.ProfitDistribution;
 import com.gaming.agricul.Project;
 import com.gaming.agricul.dto.ProposeDistributionRequest;
 import com.gaming.agricul.exception.BusinessRuleException;
+import com.gaming.agricul.exception.InvalidInputException;
 import com.gaming.agricul.exception.NotFoundException;
 import com.gaming.agricul.repository.ContributionRepository;
 import com.gaming.agricul.repository.OperationRepository;
@@ -132,7 +133,7 @@ class ProfitDistributionServiceTest {
     void propose_rejectsPeriodEndBeforePeriodStart() {
         assertThatThrownBy(() -> service.propose(1L,
                 new ProposeDistributionRequest(periodEnd, periodStart, null, null, null), 1L))
-                .isInstanceOf(BusinessRuleException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 
     @Test

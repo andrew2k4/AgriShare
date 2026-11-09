@@ -1,5 +1,6 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.Contribution;
 import com.gaming.agricul.Operation;
 import com.gaming.agricul.OperationType;
@@ -55,9 +56,7 @@ public class WithdrawalService {
     }
 
     public Withdrawal request(Long contributionId, BigDecimal amount, Long requestedByAppUserId) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessRuleException("Withdrawal amount must be positive");
-        }
+        InputRules.positiveAmount(amount, "amount");
         Contribution contribution = contributionRepository.findById(contributionId)
                 .orElseThrow(() -> new NotFoundException("Contribution not found with id: " + contributionId));
 

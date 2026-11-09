@@ -19,6 +19,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { api } from "@/api";
 import type { components } from "@/api";
 import { toast } from "@/hooks/use-toast";
+import { FieldError } from "@/components/ui/field-error";
+import { amountError, dateError, todayIso, useFormErrors } from "@/lib/validation";
 
 type ProjectDto = components["schemas"]["ProjectDto"];
 type InvestorDto = components["schemas"]["InvestorDto"];
@@ -42,13 +44,22 @@ export default function ProfitsPage() {
   const [proposing, setProposing] = useState(false);
   const [actingOnId, setActingOnId] = useState<number | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const [form, setForm] = useState({
     periodStart: today,
     periodEnd: today,
     taxes: "0",
     reserve: "0",
     reinvestment: "0",
+  });
+  const periodEndError = dateError(form.periodEnd, { notInFuture: true });
+  const { errors, check, reset } = useFormErrors({
+    periodStart: dateError(form.periodStart, { notInFuture: true }),
+    periodEnd: periodEndError
+      ?? (form.periodStart && form.periodEnd < form.periodStart ? "La fin doit être après le début de la période." : null),
+    taxes: amountError(form.taxes, { allowZero: true }),
+    reserve: amountError(form.reserve, { allowZero: true }),
+    reinvestment: amountError(form.reinvestment, { allowZero: true }),
   });
 
   const canManageDistributions = role === "ADMIN" || role === "MANAGER";
@@ -135,7 +146,7 @@ export default function ProfitsPage() {
   };
 
   const handlePropose = async () => {
-    if (!selectedProjectId) return;
+    if (!selectedProjectId || !check()) return;
     setProposing(true);
     const { error } = await api.distributions.propose(Number(selectedProjectId), {
       periodStart: form.periodStart,
@@ -154,6 +165,7 @@ export default function ProfitsPage() {
       return;
     }
     toast({ title: "Distribution proposée", description: "En attente de validation par un second responsable." });
+    reset();
     fetchDistributions(selectedProjectId);
   };
 
@@ -351,41 +363,59 @@ export default function ProfitsPage() {
                       <Label>Début de période</Label>
                       <Input
                         type="date"
+                        max={today}
                         value={form.periodStart}
+                        aria-invalid={!!errors.periodStart}
                         onChange={(e) => setForm({ ...form, periodStart: e.target.value })}
                       />
+                      <FieldError message={errors.periodStart} />
                     </div>
                     <div className="space-y-2">
                       <Label>Fin de période</Label>
                       <Input
                         type="date"
+                        max={today}
                         value={form.periodEnd}
+                        aria-invalid={!!errors.periodEnd}
                         onChange={(e) => setForm({ ...form, periodEnd: e.target.value })}
                       />
+                      <FieldError message={errors.periodEnd} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Taxes</Label>
+                      <Label>Taxes (FCFA)</Label>
                       <Input
                         type="number"
+                        min={0}
+                        step={1}
                         value={form.taxes}
+                        aria-invalid={!!errors.taxes}
                         onChange={(e) => setForm({ ...form, taxes: e.target.value })}
                       />
+                      <FieldError message={errors.taxes} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Réserve</Label>
+                      <Label>Réserve (FCFA)</Label>
                       <Input
                         type="number"
+                        min={0}
+                        step={1}
                         value={form.reserve}
+                        aria-invalid={!!errors.reserve}
                         onChange={(e) => setForm({ ...form, reserve: e.target.value })}
                       />
+                      <FieldError message={errors.reserve} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Réinvestissement</Label>
+                      <Label>Réinvestissement (FCFA)</Label>
                       <Input
                         type="number"
+                        min={0}
+                        step={1}
                         value={form.reinvestment}
+                        aria-invalid={!!errors.reinvestment}
                         onChange={(e) => setForm({ ...form, reinvestment: e.target.value })}
                       />
+                      <FieldError message={errors.reinvestment} />
                     </div>
                   </div>
                   <Button className="bg-primary" disabled={proposing} onClick={handlePropose}>

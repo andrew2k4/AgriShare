@@ -1,5 +1,7 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.exception.InvalidInputException;
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.FinancialParameterConfig;
 import com.gaming.agricul.FinancialParameterHistory;
 import com.gaming.agricul.ProjectPhase;
@@ -28,6 +30,7 @@ import java.util.Optional;
 public class FinancialParameterService {
 
     public static final BigDecimal NEUTRAL_FACTOR = BigDecimal.ONE;
+    private static final BigDecimal MAX_COEFFICIENT = new BigDecimal("999999.9999");
     private static final String IMPACT_FACTOR_KEY = "IMPACT_FACTOR";
 
     /** No floor on the project's value by default: withdrawals are never blocked unless an admin sets one. */
@@ -70,7 +73,13 @@ public class FinancialParameterService {
         return configRepository.findByProjectIdIsNull();
     }
 
-    public FinancialParameterConfig setParameter(String paramKey, Long projectId, BigDecimal value, Long changedByUserId) {
+    public FinancialParameterConfig setParameter(String rawParamKey, Long projectId, BigDecimal value, Long changedByUserId) {
+        String paramKey = InputRules.text(rawParamKey, "paramKey", 100);
+        InputRules.required(value, "value");
+        // NUMERIC(10,4) column: at most 6 digits before the decimal point
+        if (value.signum() < 0 || value.compareTo(MAX_COEFFICIENT) > 0 || value.stripTrailingZeros().scale() > 4) {
+            throw new InvalidInputException("value must be between 0 and 999999.9999 with at most 4 decimals");
+        }
         FinancialParameterConfig config = configRepository.findByParamKeyAndProjectId(paramKey, projectId)
                 .orElseGet(() -> {
                     FinancialParameterConfig created = new FinancialParameterConfig();

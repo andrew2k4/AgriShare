@@ -1,5 +1,7 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.exception.InvalidInputException;
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.Contribution;
 import com.gaming.agricul.DistributionStatus;
 import com.gaming.agricul.Operation;
@@ -59,12 +61,14 @@ public class ProfitDistributionService {
     }
 
     public ProfitDistribution propose(Long projectId, ProposeDistributionRequest request, Long proposedByAppUserId) {
-        if (request.periodStart() == null || request.periodEnd() == null) {
-            throw new BusinessRuleException("Period start and end are required");
-        }
+        InputRules.pastOrToday(request.periodStart(), "periodStart");
+        InputRules.pastOrToday(request.periodEnd(), "periodEnd");
         if (request.periodEnd().isBefore(request.periodStart())) {
-            throw new BusinessRuleException("Period end must not be before period start");
+            throw new InvalidInputException("periodEnd must not be before periodStart");
         }
+        InputRules.nonNegativeAmount(request.taxes(), "taxes");
+        InputRules.nonNegativeAmount(request.reserve(), "reserve");
+        InputRules.nonNegativeAmount(request.reinvestment(), "reinvestment");
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("Project not found with id: " + projectId));
 

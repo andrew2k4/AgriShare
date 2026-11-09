@@ -1,5 +1,6 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.AppUser;
 import com.gaming.agricul.Role;
 import com.gaming.agricul.UserStatus;
@@ -31,6 +32,7 @@ public class AppUserService {
     }
 
     public AppUser updateRole(Long id, Role role) {
+        InputRules.required(role, "role");
         AppUser user = findById(id);
         user.setRole(role);
         return appUserRepository.save(user);

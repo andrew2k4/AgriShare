@@ -1,5 +1,7 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.exception.InvalidInputException;
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.ProductionDay;
 import com.gaming.agricul.repository.ProductionDayRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class ProductionDayService {
+
+    private static final int MAX_QUANTITY = 1_000_000;
 
     private final ProductionDayRepository productionDayRepository;
 
@@ -27,6 +31,7 @@ public class ProductionDayService {
     }
 
     public ProductionDay save(ProductionDay productionDay) {
+        validate(productionDay);
         return productionDayRepository.save(productionDay);
     }
 
@@ -34,8 +39,17 @@ public class ProductionDayService {
         if (!productionDayRepository.existsById(id)) {
             throw new RuntimeException("ProductionDay not found with id: " + id);
         }
+        validate(productionDay);
         productionDay.setId(id);
         return productionDayRepository.save(productionDay);
+    }
+
+    private static void validate(ProductionDay productionDay) {
+        InputRules.pastOrToday(productionDay.getDate(), "date");
+        // A day without production is a valid entry
+        if (productionDay.getQuantity() < 0 || productionDay.getQuantity() > MAX_QUANTITY) {
+            throw new InvalidInputException("quantity must be between 0 and " + MAX_QUANTITY);
+        }
     }
 
     public void deleteById(Long id) {

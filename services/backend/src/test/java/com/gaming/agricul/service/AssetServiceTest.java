@@ -3,7 +3,7 @@ package com.gaming.agricul.service;
 import com.gaming.agricul.Asset;
 import com.gaming.agricul.AssetType;
 import com.gaming.agricul.dto.CreateAssetRequest;
-import com.gaming.agricul.exception.BusinessRuleException;
+import com.gaming.agricul.exception.InvalidInputException;
 import com.gaming.agricul.exception.NotFoundException;
 import com.gaming.agricul.repository.AssetRepository;
 import com.gaming.agricul.repository.InvestorRepository;
@@ -53,7 +53,7 @@ class AssetServiceTest {
     @Test
     void create_rejectsNonPositiveValue() {
         assertThatThrownBy(() -> assetService.create(1L, new CreateAssetRequest(10L, AssetType.BUILDING, "Ferme", BigDecimal.ZERO)))
-                .isInstanceOf(BusinessRuleException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 
     @Test

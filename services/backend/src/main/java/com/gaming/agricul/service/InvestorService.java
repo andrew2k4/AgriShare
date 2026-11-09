@@ -1,5 +1,6 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.Investor;
 import com.gaming.agricul.repository.InvestorRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class InvestorService {
     }
 
     public Investor save(Investor investor) {
+        validate(investor);
         return investorRepository.save(investor);
     }
 
@@ -34,8 +36,15 @@ public class InvestorService {
         if (!investorRepository.existsById(id)) {
             throw new RuntimeException("Investor not found with id: " + id);
         }
+        validate(investor);
         investor.setId(id);
         return investorRepository.save(investor);
+    }
+
+    private static void validate(Investor investor) {
+        investor.setFullName(InputRules.text(investor.getFullName(), "fullName", InputRules.MAX_TEXT));
+        // An investor can be registered before their first contribution
+        InputRules.number(investor.getContribution(), "contribution", InputRules.MAX_AMOUNT.doubleValue(), true);
     }
 
     public void deleteById(Long id) {

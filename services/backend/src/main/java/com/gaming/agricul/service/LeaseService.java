@@ -1,5 +1,6 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.Asset;
 import com.gaming.agricul.AssetOwnershipStatus;
 import com.gaming.agricul.Lease;
@@ -49,12 +50,8 @@ public class LeaseService {
     }
 
     public Lease create(Long assetId, CreateLeaseRequest request) {
-        if (request.monthlyRent() == null || request.monthlyRent().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessRuleException("Monthly rent must be positive");
-        }
-        if (request.startDate() == null) {
-            throw new BusinessRuleException("Start date is required");
-        }
+        InputRules.positiveAmount(request.monthlyRent(), "monthlyRent");
+        InputRules.date(request.startDate(), "startDate");
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new NotFoundException("Asset not found with id: " + assetId));
         if (asset.getOwnershipStatus() != AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR) {
