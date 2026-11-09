@@ -28,6 +28,8 @@ import {
 import { api } from "@/api/api";
 import type { components } from "@/api/schema";
 import { toast } from "@/hooks/use-toast";
+import { FieldError } from "@/components/ui/field-error";
+import { amountError, dateError, MAX_TEXT, selectError, textError, todayIso, useFormErrors } from "@/lib/validation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type OperationDto = components["schemas"]["OperationDto"];
@@ -45,9 +47,17 @@ export default function AccountingPage() {
   const [form, setForm] = useState({
     label: "",
     category: "",
-    date: new Date().toISOString().split("T")[0],
+    date: todayIso(),
     amount: "",
     operationType: "" as "INCOME" | "EXPENSE" | "",
+  });
+  const { errors, check, reset } = useFormErrors({
+    operationType: selectError(form.operationType, "Choisissez le type d'opération."),
+    category: form.operationType ? selectError(form.category, "Choisissez une rubrique.") : null,
+    date: dateError(form.date, { notInFuture: true }),
+    amount: amountError(form.amount),
+    // Stored as "<rubrique>: <détails>" in a 255-character column
+    label: textError(form.label, { required: false, max: MAX_TEXT - form.category.length - 2 }),
   });
 
   async function fetchOperations() {
@@ -76,15 +86,16 @@ export default function AccountingPage() {
   const netProfit = totalIncome - totalExpense;
 
   async function handleCreate() {
-    if (!form.category || !form.date || !form.amount || !form.operationType) return;
+    if (!check()) return;
     setSaving(true);
     // On concatène la catégorie et le label pour le stockage API
-    const fullLabel = form.label ? `${form.category}: ${form.label}` : form.category;
+    const details = form.label.trim();
+    const fullLabel = details ? `${form.category}: ${details}` : form.category;
     const { error } = await api.operations.create({
       label: fullLabel,
       date: form.date,
       amount: Number(form.amount),
-      operationType: form.operationType,
+      operationType: form.operationType as "INCOME" | "EXPENSE", // checked by check() above
     });
     setSaving(false);
     if (error) {
@@ -93,7 +104,8 @@ export default function AccountingPage() {
     }
     toast({ title: "Opération ajoutée", description: `"${fullLabel}" enregistrée.` });
     setDialogOpen(false);
-    setForm({ label: "", category: "", date: new Date().toISOString().split("T")[0], amount: "", operationType: "" });
+    setForm({ label: "", category: "", date: todayIso(), amount: "", operationType: "" });
+    reset();
     fetchOperations();
   }
 
@@ -257,7 +269,7 @@ export default function AccountingPage() {
         </Tabs>
       </main>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) reset(); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enregistrer une opération</DialogTitle>
@@ -269,7 +281,7 @@ export default function AccountingPage() {
                 value={form.operationType} 
                 onValueChange={(v) => setForm({...form, operationType: v as any, category: ""})}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-invalid={!!errors.operationType}>
                   <SelectValue placeholder="Choisir le type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -277,6 +289,7 @@ export default function AccountingPage() {
                   <SelectItem value="EXPENSE">Sortie (Charge)</SelectItem>
                 </SelectContent>
               </Select>
+              <FieldError message={errors.operationType} />
             </div>
             {form.operationType && (
               <div className="space-y-2">
@@ -285,7 +298,7 @@ export default function AccountingPage() {
                   value={form.category} 
                   onValueChange={(v) => setForm({...form, category: v})}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-invalid={!!errors.category}>
                     <SelectValue placeholder="Choisir une rubrique" />
                   </SelectTrigger>
                   <SelectContent>
@@ -294,6 +307,7 @@ export default function AccountingPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError message={errors.category} />
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
@@ -301,18 +315,25 @@ export default function AccountingPage() {
                 <Label>Date</Label>
                 <Input
                   type="date"
+                  max={todayIso()}
                   value={form.date}
+                  aria-invalid={!!errors.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                 />
+                <FieldError message={errors.date} />
               </div>
               <div className="space-y-2">
                 <Label>Montant (FCFA)</Label>
                 <Input
                   type="number"
+                  min={1}
+                  step={1}
                   placeholder="Ex: 50000"
                   value={form.amount}
+                  aria-invalid={!!errors.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 />
+                <FieldError message={errors.amount} />
               </div>
             </div>
             <div className="space-y-2">
@@ -320,8 +341,10 @@ export default function AccountingPage() {
               <Input
                 placeholder="Ex: Facture #123..."
                 value={form.label}
+                aria-invalid={!!errors.label}
                 onChange={(e) => setForm({ ...form, label: e.target.value })}
               />
+              <FieldError message={errors.label} />
             </div>
           </div>
           <DialogFooter>
@@ -330,7 +353,7 @@ export default function AccountingPage() {
             </Button>
             <Button
               className="bg-primary"
-              disabled={!form.category || !form.amount || !form.operationType || saving}
+              disabled={saving}
               onClick={handleCreate}
             >
               {saving ? <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> : null}

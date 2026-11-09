@@ -25,6 +25,8 @@ import { PlusCircle, Landmark, HandCoins, Ban, RefreshCcw, Lock, Calculator, Tag
 import { api } from "@/api";
 import type { components } from "@/api";
 import { toast } from "@/hooks/use-toast";
+import { FieldError } from "@/components/ui/field-error";
+import { amountError, dateError, selectError, textError, todayIso, useFormErrors } from "@/lib/validation";
 
 type ProjectDto = components["schemas"]["ProjectDto"];
 type InvestorDto = components["schemas"]["InvestorDto"];
@@ -56,7 +58,7 @@ export default function AssetsPage() {
 
   const [leaseDialogAssetId, setLeaseDialogAssetId] = useState<number | null>(null);
   const [leaseSaving, setLeaseSaving] = useState(false);
-  const [leaseForm, setLeaseForm] = useState({ monthlyRent: "", startDate: new Date().toISOString().slice(0, 10) });
+  const [leaseForm, setLeaseForm] = useState({ monthlyRent: "", startDate: todayIso() });
 
   const [actingOnLeaseId, setActingOnLeaseId] = useState<number | null>(null);
 
@@ -67,6 +69,24 @@ export default function AssetsPage() {
   const [disposeAssetId, setDisposeAssetId] = useState<number | null>(null);
   const [disposeSaving, setDisposeSaving] = useState(false);
   const [disposeForm, setDisposeForm] = useState({ disposition: "SOLD", amount: "", buyerInvestorId: "" });
+
+  const assetValidation = useFormErrors({
+    ownerInvestorId: selectError(assetForm.ownerInvestorId, "Choisissez le propriétaire."),
+    type: selectError(assetForm.type, "Choisissez le type d'actif."),
+    description: textError(assetForm.description, { required: false, max: 1000 }),
+    initialValue: amountError(assetForm.initialValue),
+  });
+  const leaseValidation = useFormErrors({
+    monthlyRent: amountError(leaseForm.monthlyRent),
+    startDate: dateError(leaseForm.startDate),
+  });
+  const disposeValidation = useFormErrors({
+    buyerInvestorId: disposeForm.disposition === "RETAINED_BY_INVESTOR"
+      ? selectError(disposeForm.buyerInvestorId, "Choisissez l'investisseur acheteur.")
+      : null,
+    // An asset can be handed over for nothing
+    amount: amountError(disposeForm.amount, { allowZero: true }),
+  });
 
   const canManage = role === "ADMIN" || role === "MANAGER";
   const selectedProject = projects.find((p) => p.id === Number(selectedProjectId));
@@ -139,12 +159,12 @@ export default function AssetsPage() {
     assetId != null ? leasesByAsset[assetId]?.find((l) => l.status === "ACTIVE") : undefined;
 
   const handleCreateAsset = async () => {
-    if (!selectedProjectId || !assetForm.ownerInvestorId || !assetForm.initialValue) return;
+    if (!selectedProjectId || !assetValidation.check()) return;
     setAssetSaving(true);
     const { error } = await api.assets.create(Number(selectedProjectId), {
       ownerInvestorId: Number(assetForm.ownerInvestorId),
       type: assetForm.type as AssetDto["type"],
-      description: assetForm.description,
+      description: assetForm.description.trim() || undefined,
       initialValue: Number(assetForm.initialValue),
     });
     setAssetSaving(false);
@@ -154,12 +174,13 @@ export default function AssetsPage() {
     }
     toast({ title: "Actif enregistré" });
     setAssetForm({ ownerInvestorId: "", type: "BUILDING", description: "", initialValue: "" });
+    assetValidation.reset();
     setAssetDialogOpen(false);
     fetchAssets(selectedProjectId);
   };
 
   const handleCreateLease = async () => {
-    if (!leaseDialogAssetId || !leaseForm.monthlyRent) return;
+    if (!leaseDialogAssetId || !leaseValidation.check()) return;
     setLeaseSaving(true);
     const { error } = await api.leases.create(leaseDialogAssetId, {
       monthlyRent: Number(leaseForm.monthlyRent),
@@ -172,7 +193,8 @@ export default function AssetsPage() {
     }
     toast({ title: "Bail créé" });
     setLeaseDialogAssetId(null);
-    setLeaseForm({ monthlyRent: "", startDate: new Date().toISOString().slice(0, 10) });
+    setLeaseForm({ monthlyRent: "", startDate: todayIso() });
+    leaseValidation.reset();
     fetchAssets(selectedProjectId);
   };
 
@@ -213,13 +235,12 @@ export default function AssetsPage() {
   };
 
   const handleDisposeAsset = async () => {
-    if (!disposeAssetId || !disposeForm.amount) return;
-    if (disposeForm.disposition === "RETAINED_BY_INVESTOR" && !disposeForm.buyerInvestorId) return;
+    if (!disposeAssetId || !disposeValidation.check()) return;
     setDisposeSaving(true);
     const { error } = await api.assets.dispose(disposeAssetId, {
       disposition: disposeForm.disposition as DisposeAssetRequest["disposition"],
       amount: Number(disposeForm.amount),
-      buyerInvestorId: disposeForm.buyerInvestorId ? Number(disposeForm.buyerInvestorId) : undefined,
+      buyerInvestorId: disposeForm.disposition === "RETAINED_BY_INVESTOR" ? Number(disposeForm.buyerInvestorId) : undefined,
     });
     setDisposeSaving(false);
     if (error) {
@@ -229,6 +250,7 @@ export default function AssetsPage() {
     toast({ title: "Actif réglé", description: "Le montant a été enregistré comme revenu du projet." });
     setDisposeAssetId(null);
     setDisposeForm({ disposition: "SOLD", amount: "", buyerInvestorId: "" });
+    disposeValidation.reset();
     fetchAssets(selectedProjectId);
   };
 
@@ -418,7 +440,7 @@ export default function AssetsPage() {
         )}
       </main>
 
-      <Dialog open={assetDialogOpen} onOpenChange={setAssetDialogOpen}>
+      <Dialog open={assetDialogOpen} onOpenChange={(open) => { setAssetDialogOpen(open); if (!open) assetValidation.reset(); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nouvel actif</DialogTitle>
@@ -430,7 +452,7 @@ export default function AssetsPage() {
                 value={assetForm.ownerInvestorId}
                 onValueChange={(v) => setAssetForm({ ...assetForm, ownerInvestorId: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-invalid={!!assetValidation.errors.ownerInvestorId}>
                   <SelectValue placeholder="Choisir un investisseur" />
                 </SelectTrigger>
                 <SelectContent>
@@ -441,6 +463,7 @@ export default function AssetsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError message={assetValidation.errors.ownerInvestorId} />
             </div>
             <div className="space-y-2">
               <Label>Type</Label>
@@ -456,23 +479,30 @@ export default function AssetsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError message={assetValidation.errors.type} />
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
               <Input
                 placeholder="Ex: Ferme + bâtiments + équipements"
                 value={assetForm.description}
+                aria-invalid={!!assetValidation.errors.description}
                 onChange={(e) => setAssetForm({ ...assetForm, description: e.target.value })}
               />
+              <FieldError message={assetValidation.errors.description} />
             </div>
             <div className="space-y-2">
               <Label>Valeur initiale (FCFA)</Label>
               <Input
                 type="number"
+                min={1}
+                step={1}
                 placeholder="Ex: 8000000"
                 value={assetForm.initialValue}
+                aria-invalid={!!assetValidation.errors.initialValue}
                 onChange={(e) => setAssetForm({ ...assetForm, initialValue: e.target.value })}
               />
+              <FieldError message={assetValidation.errors.initialValue} />
             </div>
           </div>
           <DialogFooter>
@@ -481,7 +511,7 @@ export default function AssetsPage() {
             </Button>
             <Button
               className="bg-primary"
-              disabled={!assetForm.ownerInvestorId || !assetForm.initialValue || assetSaving}
+              disabled={assetSaving}
               onClick={handleCreateAsset}
             >
               {assetSaving && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}
@@ -491,7 +521,7 @@ export default function AssetsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={leaseDialogAssetId !== null} onOpenChange={(open) => !open && setLeaseDialogAssetId(null)}>
+      <Dialog open={leaseDialogAssetId !== null} onOpenChange={(open) => { if (!open) { setLeaseDialogAssetId(null); leaseValidation.reset(); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Créer un bail</DialogTitle>
@@ -501,25 +531,31 @@ export default function AssetsPage() {
               <Label>Loyer mensuel (FCFA)</Label>
               <Input
                 type="number"
+                min={1}
+                step={1}
                 placeholder="Ex: 80000"
                 value={leaseForm.monthlyRent}
+                aria-invalid={!!leaseValidation.errors.monthlyRent}
                 onChange={(e) => setLeaseForm({ ...leaseForm, monthlyRent: e.target.value })}
               />
+              <FieldError message={leaseValidation.errors.monthlyRent} />
             </div>
             <div className="space-y-2">
               <Label>Date de début</Label>
               <Input
                 type="date"
                 value={leaseForm.startDate}
+                aria-invalid={!!leaseValidation.errors.startDate}
                 onChange={(e) => setLeaseForm({ ...leaseForm, startDate: e.target.value })}
               />
+              <FieldError message={leaseValidation.errors.startDate} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLeaseDialogAssetId(null)}>
               Annuler
             </Button>
-            <Button className="bg-primary" disabled={!leaseForm.monthlyRent || leaseSaving} onClick={handleCreateLease}>
+            <Button className="bg-primary" disabled={leaseSaving} onClick={handleCreateLease}>
               {leaseSaving && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}
               Créer le bail
             </Button>
@@ -527,7 +563,7 @@ export default function AssetsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={disposeAssetId !== null} onOpenChange={(open) => !open && setDisposeAssetId(null)}>
+      <Dialog open={disposeAssetId !== null} onOpenChange={(open) => { if (!open) { setDisposeAssetId(null); disposeValidation.reset(); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Régler cet actif</DialogTitle>
@@ -555,7 +591,7 @@ export default function AssetsPage() {
                   value={disposeForm.buyerInvestorId}
                   onValueChange={(v) => setDisposeForm({ ...disposeForm, buyerInvestorId: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-invalid={!!disposeValidation.errors.buyerInvestorId}>
                     <SelectValue placeholder="Choisir un investisseur" />
                   </SelectTrigger>
                   <SelectContent>
@@ -566,16 +602,21 @@ export default function AssetsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError message={disposeValidation.errors.buyerInvestorId} />
               </div>
             )}
             <div className="space-y-2">
               <Label>Montant (FCFA)</Label>
               <Input
                 type="number"
+                min={0}
+                step={1}
                 placeholder="Ex: 8500000"
                 value={disposeForm.amount}
+                aria-invalid={!!disposeValidation.errors.amount}
                 onChange={(e) => setDisposeForm({ ...disposeForm, amount: e.target.value })}
               />
+              <FieldError message={disposeValidation.errors.amount} />
               <p className="text-xs text-muted-foreground">
                 Enregistré comme revenu du projet, à répartir via une distribution de clôture.
               </p>
@@ -587,11 +628,7 @@ export default function AssetsPage() {
             </Button>
             <Button
               className="bg-primary"
-              disabled={
-                !disposeForm.amount ||
-                (disposeForm.disposition === "RETAINED_BY_INVESTOR" && !disposeForm.buyerInvestorId) ||
-                disposeSaving
-              }
+              disabled={disposeSaving}
               onClick={handleDisposeAsset}
             >
               {disposeSaving && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}

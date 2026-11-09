@@ -10,6 +10,7 @@ import com.gaming.agricul.Lease;
 import com.gaming.agricul.LeaseStatus;
 import com.gaming.agricul.Project;
 import com.gaming.agricul.exception.BusinessRuleException;
+import com.gaming.agricul.exception.InvalidInputException;
 import com.gaming.agricul.exception.NotFoundException;
 import com.gaming.agricul.repository.AssetRepository;
 import com.gaming.agricul.repository.ContributionRepository;
@@ -103,15 +104,15 @@ class ContributionServiceTest {
     @Test
     void addContribution_rejectsNonPositiveAmount() {
         assertThatThrownBy(() -> contributionService.addContribution(1L, 10L, ContributionType.EQUITY, BigDecimal.ZERO, LocalDate.now(), null))
-                .isInstanceOf(BusinessRuleException.class);
+                .isInstanceOf(InvalidInputException.class);
         assertThatThrownBy(() -> contributionService.addContribution(1L, 10L, ContributionType.EQUITY, new BigDecimal("-5"), LocalDate.now(), null))
-                .isInstanceOf(BusinessRuleException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 
     @Test
     void addContribution_rejectsMissingEntryDate() {
         assertThatThrownBy(() -> contributionService.addContribution(1L, 10L, ContributionType.EQUITY, BigDecimal.TEN, null, null))
-                .isInstanceOf(BusinessRuleException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 
     @Test
@@ -133,7 +134,7 @@ class ContributionServiceTest {
     @Test
     void addContribution_rejectsAssetIdOnNonInKindType() {
         assertThatThrownBy(() -> contributionService.addContribution(1L, 10L, ContributionType.EQUITY, BigDecimal.TEN, LocalDate.now(), 5L))
-                .isInstanceOf(BusinessRuleException.class);
+                .isInstanceOf(InvalidInputException.class);
     }
 
     @Test

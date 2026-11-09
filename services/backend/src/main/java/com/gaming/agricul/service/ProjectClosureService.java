@@ -1,5 +1,7 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.exception.InvalidInputException;
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.Asset;
 import com.gaming.agricul.AssetDisposition;
 import com.gaming.agricul.AssetOwnershipStatus;
@@ -46,11 +48,16 @@ public class ProjectClosureService {
 
     public Asset disposeAsset(Long assetId, AssetDisposition disposition, BigDecimal amount, Long buyerInvestorId) {
         if (disposition == null || disposition == AssetDisposition.PENDING) {
-            throw new BusinessRuleException("Disposition must be SOLD or RETAINED_BY_INVESTOR");
+            throw new InvalidInputException("disposition must be SOLD or RETAINED_BY_INVESTOR");
         }
         if (disposition == AssetDisposition.RETAINED_BY_INVESTOR && buyerInvestorId == null) {
-            throw new BusinessRuleException("buyerInvestorId is required when an investor retains the asset");
+            throw new InvalidInputException("buyerInvestorId is required when an investor retains the asset");
         }
+        if (disposition == AssetDisposition.SOLD) {
+            // Sold to a third party: there is no buyer investor to record
+            buyerInvestorId = null;
+        }
+        InputRules.nonNegativeAmount(amount, "amount");
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new NotFoundException("Asset not found with id: " + assetId));
         if (asset.getOwnershipStatus() != AssetOwnershipStatus.TRANSFERRED_TO_PROJECT) {

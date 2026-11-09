@@ -42,6 +42,8 @@ import { useSession } from "@/auth/AuthProvider";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/api/api";
+import { FieldError } from "@/components/ui/field-error";
+import { amountError, numberError, selectError, textError, useFormErrors, type FieldErrors } from "@/lib/validation";
 
 interface InitialInvestor {
   name: string;
@@ -69,11 +71,36 @@ export default function NewProjectPage() {
     { name: "", amount: "" },
   ]);
 
+  const step1 = useFormErrors({
+    domain: selectError(formData.domain, "Choisissez un domaine d'activité."),
+    type: formData.domain ? selectError(formData.type, "Choisissez un type de culture ou d'élevage.") : null,
+  });
+  const step2 = useFormErrors({
+    budget: amountError(formData.budget),
+    landSize: numberError(formData.landSize, { max: 1_000_000_000, empty: "Saisissez la taille du terrain." }),
+    description: textError(formData.description, { required: false }),
+  });
+
+  // Blank investor rows are ignored; a half-filled row is an error
+  const investorErrors: FieldErrors<string> = {};
+  investors.forEach((inv, i) => {
+    if (!inv.name.trim() && !inv.amount.trim()) return;
+    investorErrors[`name-${i}`] = textError(inv.name);
+    investorErrors[`amount-${i}`] = amountError(inv.amount);
+  });
+  const filledInvestors = investors.filter((inv) => inv.name.trim() || inv.amount.trim());
+  const step4 = useFormErrors<string>({
+    projectName: textError(formData.projectName),
+    investors: filledInvestors.length === 0 ? "Ajoutez au moins un investisseur avec son apport." : null,
+    ...investorErrors,
+  });
+
   const totalInitialCapital = useMemo(() => {
     return investors.reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
   }, [investors]);
 
   const handleSimulate = async () => {
+    if (!step2.check()) return;
     setLoading(true);
     await new Promise((r) => setTimeout(r, 800));
     setSimulation({
@@ -124,6 +151,7 @@ export default function NewProjectPage() {
   };
 
   const handleInitializeProject = async () => {
+    if (!step4.check()) return;
     if (!user) {
       toast({
         variant: "destructive",
@@ -137,7 +165,7 @@ export default function NewProjectPage() {
     setLoading(true);
 
     const { data: project, error } = await api.projects.create({
-      name: formData.projectName,
+      name: formData.projectName.trim(),
       projectType: formData.domain as "LIVESTOCK" | "AGRICULTURE",
       livestockType: formData.domain === "LIVESTOCK"
         ? livestockTypeMap[formData.type]
@@ -145,7 +173,7 @@ export default function NewProjectPage() {
       budget: Number(formData.budget),
       landSize: Number(formData.landSize),
       existingStructures: formData.hasStructures,
-      notes: formData.description || undefined,
+      notes: formData.description.trim() || undefined,
     });
 
     if (error || !project || project.id == null) {
@@ -159,11 +187,11 @@ export default function NewProjectPage() {
     }
 
     const today = new Date().toISOString().slice(0, 10);
-    const initialInvestors = investors.filter((inv) => inv.name && Number(inv.amount) > 0);
+    const initialInvestors = filledInvestors;
 
     for (const inv of initialInvestors) {
       const { data: investor, error: investorError } = await api.investors.create({
-        fullName: inv.name,
+        fullName: inv.name.trim(),
         contribution: Number(inv.amount),
       });
       if (investorError || !investor || investor.id == null) continue;
@@ -178,7 +206,7 @@ export default function NewProjectPage() {
 
     toast({
       title: "Projet Initialisé !",
-      description: `Le projet "${formData.projectName}" a été créé avec succès.`,
+      description: `Le projet "${formData.projectName.trim()}" a été créé avec succès.`,
     });
 
     setLoading(false);
@@ -215,9 +243,10 @@ export default function NewProjectPage() {
               <div className="space-y-2">
                 <Label>Domaine d'activité</Label>
                 <Select
-                  onValueChange={(v) => setFormData({ ...formData, domain: v })}
+                  value={formData.domain}
+                  onValueChange={(v) => setFormData({ ...formData, domain: v, type: "" })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-invalid={!!step1.errors.domain}>
                     <SelectValue placeholder="Sélectionner un domaine" />
                   </SelectTrigger>
                   <SelectContent>
@@ -227,15 +256,17 @@ export default function NewProjectPage() {
                     <SelectItem value="AGRICULTURE">Agriculture</SelectItem>
                   </SelectContent>
                 </Select>
+                <FieldError message={step1.errors.domain} />
               </div>
 
               {formData.domain && (
                 <div className="space-y-2 animate-in fade-in">
                   <Label>Type de culture ou élevage</Label>
                   <Select
+                    value={formData.type}
                     onValueChange={(v) => setFormData({ ...formData, type: v })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-invalid={!!step1.errors.type}>
                       <SelectValue placeholder="Sélectionner le type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -256,12 +287,12 @@ export default function NewProjectPage() {
                       )}
                     </SelectContent>
                   </Select>
+                  <FieldError message={step1.errors.type} />
                 </div>
               )}
 
               <Button
-                disabled={!formData.type}
-                onClick={() => setStep(2)}
+                onClick={() => step1.check() && setStep(2)}
                 className="w-full bg-primary"
               >
                 Suivant <ArrowRight className="ml-2 h-4 w-4" />
@@ -284,23 +315,31 @@ export default function NewProjectPage() {
                   <Label>Budget disponible (FCFA)</Label>
                   <Input
                     type="number"
+                    min={1}
+                    step={1}
                     placeholder="Ex: 5000000"
                     value={formData.budget}
+                    aria-invalid={!!step2.errors.budget}
                     onChange={(e) =>
                       setFormData({ ...formData, budget: e.target.value })
                     }
                   />
+                  <FieldError message={step2.errors.budget} />
                 </div>
                 <div className="space-y-2">
                   <Label>Taille du terrain (m²)</Label>
                   <Input
                     type="number"
+                    min={0}
+                    step="any"
                     placeholder="Ex: 1000"
                     value={formData.landSize}
+                    aria-invalid={!!step2.errors.landSize}
                     onChange={(e) =>
                       setFormData({ ...formData, landSize: e.target.value })
                     }
                   />
+                  <FieldError message={step2.errors.landSize} />
                 </div>
               </div>
 
@@ -324,10 +363,12 @@ export default function NewProjectPage() {
                 <Input
                   placeholder="Ex: Terrain avec accès eau, proche de Douala..."
                   value={formData.description}
+                  aria-invalid={!!step2.errors.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
                 />
+                <FieldError message={step2.errors.description} />
               </div>
 
               <div className="flex gap-4">
@@ -339,7 +380,7 @@ export default function NewProjectPage() {
                   Retour
                 </Button>
                 <Button
-                  disabled={!formData.budget || !formData.landSize || loading}
+                  disabled={loading}
                   onClick={handleSimulate}
                   className="flex-1 bg-primary"
                 >
@@ -492,10 +533,12 @@ export default function NewProjectPage() {
                 <Input
                   placeholder="Ex: Ferme Avicole du Sud"
                   value={formData.projectName}
+                  aria-invalid={!!step4.errors.projectName}
                   onChange={(e) =>
                     setFormData({ ...formData, projectName: e.target.value })
                   }
                 />
+                <FieldError message={step4.errors.projectName} />
               </div>
 
               <div className="space-y-4">
@@ -515,7 +558,7 @@ export default function NewProjectPage() {
                 {investors.map((inv, idx) => (
                   <div
                     key={idx}
-                    className="flex gap-2 items-end animate-in fade-in slide-in-from-right-2"
+                    className="flex gap-2 items-start animate-in fade-in slide-in-from-right-2"
                   >
                     <div className="flex-1 space-y-1">
                       <Label className="text-[10px] text-muted-foreground">
@@ -524,10 +567,12 @@ export default function NewProjectPage() {
                       <Input
                         placeholder="Nom"
                         value={inv.name}
+                        aria-invalid={!!step4.errors[`name-${idx}`]}
                         onChange={(e) =>
                           updateInvestor(idx, "name", e.target.value)
                         }
                       />
+                      <FieldError message={step4.errors[`name-${idx}`]} />
                     </div>
                     <div className="flex-1 space-y-1">
                       <Label className="text-[10px] text-muted-foreground">
@@ -535,25 +580,30 @@ export default function NewProjectPage() {
                       </Label>
                       <Input
                         type="number"
+                        min={1}
+                        step={1}
                         placeholder="Montant"
                         value={inv.amount}
+                        aria-invalid={!!step4.errors[`amount-${idx}`]}
                         onChange={(e) =>
                           updateInvestor(idx, "amount", e.target.value)
                         }
                       />
+                      <FieldError message={step4.errors[`amount-${idx}`]} />
                     </div>
                     {investors.length > 1 && (
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => removeInvestor(idx)}
-                        className="text-destructive h-10 w-10"
+                        className="text-destructive h-10 w-10 mt-5"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
                 ))}
+                <FieldError message={step4.errors.investors} />
 
                 <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
                   <div className="flex justify-between items-center text-sm">
@@ -578,11 +628,7 @@ export default function NewProjectPage() {
                   Retour Simulation
                 </Button>
                 <Button
-                  disabled={
-                    !formData.projectName ||
-                    totalInitialCapital === 0 ||
-                    loading
-                  }
+                  disabled={loading}
                   onClick={handleInitializeProject}
                   className="flex-1 bg-primary"
                 >

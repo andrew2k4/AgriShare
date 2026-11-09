@@ -39,6 +39,8 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/api";
 import type { components } from "@/api";
 import { toast } from "@/hooks/use-toast";
+import { FieldError } from "@/components/ui/field-error";
+import { amountError, dateError, selectError, textError, todayIso, useFormErrors } from "@/lib/validation";
 
 type InvestorDto = components["schemas"]["InvestorDto"];
 type ProjectDto = components["schemas"]["ProjectDto"];
@@ -78,7 +80,7 @@ export default function InvestmentsPage() {
     investorId: "",
     type: "EQUITY",
     amount: "",
-    entryDate: new Date().toISOString().slice(0, 10),
+    entryDate: todayIso(),
     assetId: "",
   });
   const [leasableAssets, setLeasableAssets] = useState<AssetDto[]>([]);
@@ -93,6 +95,27 @@ export default function InvestmentsPage() {
   const [actingOnWithdrawalId, setActingOnWithdrawalId] = useState<number | null>(null);
 
   const canManageWithdrawals = role === "ADMIN" || role === "MANAGER";
+
+  const investorValidation = useFormErrors({
+    fullName: textError(form.fullName),
+    // An investor can be registered before their first contribution
+    contribution: amountError(form.contribution, { allowZero: true }),
+  });
+  const contributionValidation = useFormErrors({
+    projectId: selectError(selectedProjectId, "Choisissez un projet."),
+    investorId: selectError(contributionForm.investorId, "Choisissez un investisseur."),
+    type: selectError(contributionForm.type, "Choisissez le type d'apport."),
+    amount: amountError(contributionForm.amount),
+    entryDate: dateError(contributionForm.entryDate, { notInFuture: true }),
+    assetId: contributionForm.type === "IN_KIND"
+      ? selectError(contributionForm.assetId, "Choisissez l'actif apporté.")
+      : null,
+  });
+  // The server also deducts earlier withdrawals; the contribution amount is the upper bound here
+  const withdrawalContribution = contributions.find((c) => c.id === withdrawalContributionId);
+  const withdrawalValidation = useFormErrors({
+    amount: amountError(withdrawalAmount, { max: withdrawalContribution?.amount }),
+  });
 
   const fetchInvestors = async () => {
     const { data } = await api.investors.getAll();
@@ -179,8 +202,7 @@ export default function InvestmentsPage() {
   }, [selectedProjectId, contributionForm.type, contributionForm.investorId]);
 
   const handleCreateContribution = async () => {
-    if (!selectedProjectId || !contributionForm.investorId || !contributionForm.amount) return;
-    if (contributionForm.type === "IN_KIND" && !contributionForm.assetId) return;
+    if (!contributionValidation.check()) return;
     setContributionSaving(true);
     const { data, error } = await api.contributions.create(Number(selectedProjectId), {
       investorId: Number(contributionForm.investorId),
@@ -206,8 +228,9 @@ export default function InvestmentsPage() {
         : "Enregistré — à suivre via le remboursement (prêt/financement temporaire).",
     });
     setContributionForm({
-      investorId: "", type: "EQUITY", amount: "", entryDate: new Date().toISOString().slice(0, 10), assetId: "",
+      investorId: "", type: "EQUITY", amount: "", entryDate: todayIso(), assetId: "",
     });
+    contributionValidation.reset();
     fetchContributions(selectedProjectId);
     fetchCurrentShares(selectedProjectId);
   };
@@ -223,11 +246,12 @@ export default function InvestmentsPage() {
   const openWithdrawalDialog = (contributionId: number) => {
     setWithdrawalContributionId(contributionId);
     setWithdrawalAmount("");
+    withdrawalValidation.reset();
     setWithdrawalDialogOpen(true);
   };
 
   const handleRequestWithdrawal = async () => {
-    if (!withdrawalContributionId || !withdrawalAmount) return;
+    if (!withdrawalContributionId || !withdrawalValidation.check()) return;
     setWithdrawalSaving(true);
     const { data, error } = await api.withdrawals.request(withdrawalContributionId, {
       amount: Number(withdrawalAmount),
@@ -283,10 +307,10 @@ export default function InvestmentsPage() {
   const totalInvested = investors.reduce((s, i) => s + i.contribution, 0);
 
   const handleCreate = async () => {
-    if (!form.fullName || !form.contribution) return;
+    if (!investorValidation.check()) return;
     setSaving(true);
     const { error } = await api.investors.create({
-      fullName: form.fullName,
+      fullName: form.fullName.trim(),
       contribution: Number(form.contribution),
     });
     setSaving(false);
@@ -303,15 +327,16 @@ export default function InvestmentsPage() {
       description: `L'apport de ${form.fullName} a été enregistré.`,
     });
     setForm({ fullName: "", contribution: "" });
+    investorValidation.reset();
     setDialogOpen(false);
     fetchInvestors();
   };
 
   const handleUpdate = async () => {
-    if (!editingInvestor || !form.fullName || !form.contribution) return;
+    if (!editingInvestor || !investorValidation.check()) return;
     setSaving(true);
     const { error } = await api.investors.update(editingInvestor.id!, {
-      fullName: form.fullName,
+      fullName: form.fullName.trim(),
       contribution: Number(form.contribution),
     });
     setSaving(false);
@@ -329,12 +354,14 @@ export default function InvestmentsPage() {
     });
     setEditingInvestor(null);
     setForm({ fullName: "", contribution: "" });
+    investorValidation.reset();
     fetchInvestors();
   };
 
   const openEdit = (inv: InvestorDto) => {
     setEditingInvestor(inv);
     setForm({ fullName: inv.fullName, contribution: inv.contribution.toString() });
+    investorValidation.reset();
   };
 
   return (
@@ -348,7 +375,7 @@ export default function InvestmentsPage() {
           </div>
           <Button
             className="w-full md:w-auto bg-primary"
-            onClick={() => { setForm({fullName: "", contribution: ""}); setDialogOpen(true); }}
+            onClick={() => { setForm({fullName: "", contribution: ""}); investorValidation.reset(); setDialogOpen(true); }}
           >
             <PlusCircle className="mr-2 h-4 w-4" />
             Nouvel Investissement
@@ -370,7 +397,7 @@ export default function InvestmentsPage() {
               <div className="space-y-2 md:col-span-1">
                 <Label>Projet</Label>
                 <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-invalid={!!contributionValidation.errors.projectId}>
                     <SelectValue placeholder="Choisir un projet" />
                   </SelectTrigger>
                   <SelectContent>
@@ -381,14 +408,15 @@ export default function InvestmentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError message={contributionValidation.errors.projectId} />
               </div>
               <div className="space-y-2 md:col-span-1">
                 <Label>Investisseur</Label>
                 <Select
                   value={contributionForm.investorId}
-                  onValueChange={(v) => setContributionForm({ ...contributionForm, investorId: v })}
+                  onValueChange={(v) => setContributionForm({ ...contributionForm, investorId: v, assetId: "" })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-invalid={!!contributionValidation.errors.investorId}>
                     <SelectValue placeholder="Choisir un investisseur" />
                   </SelectTrigger>
                   <SelectContent>
@@ -399,6 +427,7 @@ export default function InvestmentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError message={contributionValidation.errors.investorId} />
               </div>
               <div className="space-y-2 md:col-span-1">
                 <Label>Type</Label>
@@ -417,23 +446,31 @@ export default function InvestmentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError message={contributionValidation.errors.type} />
               </div>
               <div className="space-y-2 md:col-span-1">
                 <Label>Montant (FCFA)</Label>
                 <Input
                   type="number"
+                  min={1}
+                  step={1}
                   placeholder="Ex: 2000000"
                   value={contributionForm.amount}
+                  aria-invalid={!!contributionValidation.errors.amount}
                   onChange={(e) => setContributionForm({ ...contributionForm, amount: e.target.value })}
                 />
+                <FieldError message={contributionValidation.errors.amount} />
               </div>
               <div className="space-y-2 md:col-span-1">
                 <Label>Date</Label>
                 <Input
                   type="date"
+                  max={todayIso()}
                   value={contributionForm.entryDate}
+                  aria-invalid={!!contributionValidation.errors.entryDate}
                   onChange={(e) => setContributionForm({ ...contributionForm, entryDate: e.target.value })}
                 />
+                <FieldError message={contributionValidation.errors.entryDate} />
               </div>
             </div>
 
@@ -444,7 +481,7 @@ export default function InvestmentsPage() {
                   value={contributionForm.assetId}
                   onValueChange={(v) => setContributionForm({ ...contributionForm, assetId: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-invalid={!!contributionValidation.errors.assetId}>
                     <SelectValue placeholder="Choisir un actif de cet investisseur" />
                   </SelectTrigger>
                   <SelectContent>
@@ -461,6 +498,7 @@ export default function InvestmentsPage() {
                     )}
                   </SelectContent>
                 </Select>
+                <FieldError message={contributionValidation.errors.assetId} />
                 <p className="text-xs text-muted-foreground">
                   Créez d'abord l'actif depuis la page{" "}
                   <a href="/assets" className="underline">
@@ -472,13 +510,7 @@ export default function InvestmentsPage() {
             )}
             <Button
               className="bg-primary"
-              disabled={
-                !selectedProjectId ||
-                !contributionForm.investorId ||
-                !contributionForm.amount ||
-                (contributionForm.type === "IN_KIND" && !contributionForm.assetId) ||
-                contributionSaving
-              }
+              disabled={contributionSaving}
               onClick={handleCreateContribution}
             >
               {contributionSaving && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}
@@ -776,19 +808,25 @@ export default function InvestmentsPage() {
               <Input
                 placeholder="Ex: Jean-Pierre Ndongo"
                 value={form.fullName}
+                aria-invalid={!!investorValidation.errors.fullName}
                 onChange={(e) => setForm({ ...form, fullName: e.target.value })}
               />
+              <FieldError message={investorValidation.errors.fullName} />
             </div>
             <div className="space-y-2">
               <Label>Montant (FCFA)</Label>
               <Input
                 type="number"
+                min={0}
+                step={1}
                 placeholder="Ex: 500000"
                 value={form.contribution}
+                aria-invalid={!!investorValidation.errors.contribution}
                 onChange={(e) =>
                   setForm({ ...form, contribution: e.target.value })
                 }
               />
+              <FieldError message={investorValidation.errors.contribution} />
             </div>
           </div>
           <DialogFooter>
@@ -797,7 +835,7 @@ export default function InvestmentsPage() {
             </Button>
             <Button
               className="bg-primary"
-              disabled={!form.fullName || !form.contribution || saving}
+              disabled={saving}
               onClick={editingInvestor ? handleUpdate : handleCreate}
             >
               {saving && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}
@@ -817,10 +855,15 @@ export default function InvestmentsPage() {
               <Label>Montant à retirer (FCFA)</Label>
               <Input
                 type="number"
+                min={1}
+                step={1}
+                max={withdrawalContribution?.amount}
                 placeholder="Ex: 500000"
                 value={withdrawalAmount}
+                aria-invalid={!!withdrawalValidation.errors.amount}
                 onChange={(e) => setWithdrawalAmount(e.target.value)}
               />
+              <FieldError message={withdrawalValidation.errors.amount} />
             </div>
             <p className="text-xs text-muted-foreground">
               Le retrait peut être bloqué si le projet ne peut pas l'absorber, et une pénalité
@@ -833,7 +876,7 @@ export default function InvestmentsPage() {
             </Button>
             <Button
               className="bg-primary"
-              disabled={!withdrawalAmount || withdrawalSaving}
+              disabled={withdrawalSaving}
               onClick={handleRequestWithdrawal}
             >
               {withdrawalSaving && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}

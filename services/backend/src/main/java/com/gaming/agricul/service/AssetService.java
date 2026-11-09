@@ -1,10 +1,10 @@
 package com.gaming.agricul.service;
 
+import com.gaming.agricul.validation.InputRules;
 import com.gaming.agricul.Asset;
 import com.gaming.agricul.AssetDisposition;
 import com.gaming.agricul.AssetOwnershipStatus;
 import com.gaming.agricul.dto.CreateAssetRequest;
-import com.gaming.agricul.exception.BusinessRuleException;
 import com.gaming.agricul.exception.NotFoundException;
 import com.gaming.agricul.repository.AssetRepository;
 import com.gaming.agricul.repository.InvestorRepository;
@@ -20,6 +20,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class AssetService {
+
+    /** VARCHAR(1000) column. */
+    private static final int MAX_DESCRIPTION = 1000;
 
     private final AssetRepository assetRepository;
     private final ProjectRepository projectRepository;
@@ -41,9 +44,10 @@ public class AssetService {
 
     /** New assets start OWNED_BY_CONTRIBUTOR: leasable immediately, or contributable to capital later (IN_KIND). */
     public Asset create(Long projectId, CreateAssetRequest request) {
-        if (request.initialValue() == null || request.initialValue().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessRuleException("Initial value must be positive");
-        }
+        InputRules.required(request.ownerInvestorId(), "ownerInvestorId");
+        InputRules.required(request.type(), "type");
+        InputRules.positiveAmount(request.initialValue(), "initialValue");
+        String description = InputRules.optionalText(request.description(), "description", MAX_DESCRIPTION);
         if (!projectRepository.existsById(projectId)) {
             throw new NotFoundException("Project not found with id: " + projectId);
         }
@@ -52,7 +56,7 @@ public class AssetService {
         }
 
         Asset asset = new Asset(
-                null, projectId, request.ownerInvestorId(), request.type(), request.description(),
+                null, projectId, request.ownerInvestorId(), request.type(), description,
                 request.initialValue(), request.initialValue(), AssetOwnershipStatus.OWNED_BY_CONTRIBUTOR,
                 AssetDisposition.PENDING, null, null, null
         );

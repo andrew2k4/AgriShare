@@ -92,11 +92,20 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [notVerified, setNotVerified] = useState(false);
   const [resent, setResent] = useState(false);
+  const [errors, setErrors] = useState<{ identifier?: string | null; password?: string | null }>({});
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setNotVerified(false);
+    const fieldErrors = {
+      identifier: identifier.trim() ? null : "Saisissez votre e-mail ou nom d'utilisateur.",
+      password: password ? null : "Saisissez votre mot de passe.",
+    };
+    setErrors(fieldErrors);
+    if (fieldErrors.identifier || fieldErrors.password) {
+      return;
+    }
     setLoading(true);
     try {
       const { response, error: apiError } = await apiClient.POST("/api/auth/login", {
@@ -123,7 +132,7 @@ function LoginForm() {
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4" noValidate>
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -141,7 +150,9 @@ function LoginForm() {
       <div className="space-y-2">
         <Label htmlFor="identifier">E-mail ou nom d'utilisateur</Label>
         <Input id="identifier" autoComplete="username" value={identifier}
-               onChange={(e) => setIdentifier(e.target.value)} disabled={loading} required />
+               onChange={(e) => setIdentifier(e.target.value)} disabled={loading}
+               aria-invalid={!!errors.identifier} />
+        <FieldError message={errors.identifier} />
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -149,7 +160,9 @@ function LoginForm() {
           <Link href="/forgot-password" className="text-xs text-primary hover:underline">Mot de passe oublié ?</Link>
         </div>
         <Input id="password" type="password" autoComplete="current-password" value={password}
-               onChange={(e) => setPassword(e.target.value)} disabled={loading} required />
+               onChange={(e) => setPassword(e.target.value)} disabled={loading}
+               aria-invalid={!!errors.password} />
+        <FieldError message={errors.password} />
       </div>
       <Button type="submit" className="w-full bg-primary" disabled={loading}>
         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}

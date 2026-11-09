@@ -365,12 +365,30 @@ class AuthFlowIntegrationTest {
         Cookie alice = sessionCookie(login(email, PASSWORD).andReturn());
         Cookie bob = sessionCookie(login("b-" + email, PASSWORD).andReturn());
 
-        postJson("/api/projects", "{\"name\":\"Champ d'Alice\",\"projectType\":\"AGRICULTURE\"}", alice)
+        postJson("/api/projects", "{\"name\":\"Champ d'Alice\",\"projectType\":\"AGRICULTURE\",\"budget\":500000,\"landSize\":1000}", alice)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.ownerUid").value("app-user:" + users.findByEmail(email).orElseThrow().getId()));
 
         mvc.perform(get("/api/projects").cookie(alice)).andExpect(jsonPath("$.length()").value(1));
         mvc.perform(get("/api/projects").cookie(bob)).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void invalidProjects_areRejectedWith400() throws Exception {
+        createActiveUser(email, username, PASSWORD);
+        Cookie alice = sessionCookie(login(email, PASSWORD).andReturn());
+
+        postJson("/api/projects", "{\"name\":\" \",\"projectType\":\"AGRICULTURE\",\"budget\":500000,\"landSize\":1000}", alice)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("name is required"));
+        postJson("/api/projects", "{\"name\":\"Champ\",\"projectType\":\"AGRICULTURE\",\"budget\":-1,\"landSize\":1000}", alice)
+                .andExpect(status().isBadRequest());
+        // Wrong type and unknown enum value: unreadable body, still a 400 with the usual error shape
+        postJson("/api/projects", "{\"name\":\"Champ\",\"projectType\":\"AGRICULTURE\",\"budget\":\"abc\",\"landSize\":1000}", alice)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Malformed request body"));
+        postJson("/api/projects", "{\"name\":\"Champ\",\"projectType\":\"FISHING\",\"budget\":1,\"landSize\":1}", alice)
+                .andExpect(status().isBadRequest());
     }
 
     @Test

@@ -33,6 +33,8 @@ import { ProductionChart } from "@/components/dashboard/ProductionChart";
 import { api } from "@/api/api";
 import type { components } from "@/api/schema";
 import { toast } from "@/hooks/use-toast";
+import { FieldError } from "@/components/ui/field-error";
+import { dateError, numberError, todayIso, useFormErrors } from "@/lib/validation";
 
 type ProductionDayDto = components["schemas"]["ProductionDayDto"];
 
@@ -42,8 +44,13 @@ export default function ProductionPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    date: new Date().toISOString().split("T")[0],
+    date: todayIso(),
     quantity: "",
+  });
+  const { errors, check, reset } = useFormErrors({
+    date: dateError(form.date, { notInFuture: true }),
+    // A day without production is a valid entry; INTEGER column
+    quantity: numberError(form.quantity, { allowZero: true, integer: true, max: 1_000_000, empty: "Saisissez une quantité." }),
   });
 
   async function fetchProductions() {
@@ -71,7 +78,7 @@ export default function ProductionPage() {
     : 0;
 
   async function handleCreate() {
-    if (!form.date || !form.quantity) return;
+    if (!check()) return;
     setSaving(true);
     const { error } = await api.productionDays.create({
       date: form.date,
@@ -84,7 +91,8 @@ export default function ProductionPage() {
     }
     toast({ title: "Saisie enregistrée", description: `${form.quantity} unités le ${new Date(form.date).toLocaleDateString("fr-FR")}.` });
     setDialogOpen(false);
-    setForm({ date: new Date().toISOString().split("T")[0], quantity: "" });
+    setForm({ date: todayIso(), quantity: "" });
+    reset();
     fetchProductions();
   }
 
@@ -188,7 +196,7 @@ export default function ProductionPage() {
         )}
       </main>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) reset(); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Saisie Journalière</DialogTitle>
@@ -198,18 +206,25 @@ export default function ProductionPage() {
               <Label>Date</Label>
               <Input
                 type="date"
+                max={todayIso()}
                 value={form.date}
+                aria-invalid={!!errors.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
+              <FieldError message={errors.date} />
             </div>
             <div className="space-y-2">
               <Label>Quantité produite</Label>
               <Input
                 type="number"
+                min={0}
+                step={1}
                 placeholder="Ex: 450"
                 value={form.quantity}
+                aria-invalid={!!errors.quantity}
                 onChange={(e) => setForm({ ...form, quantity: e.target.value })}
               />
+              <FieldError message={errors.quantity} />
             </div>
           </div>
           <DialogFooter>
@@ -218,7 +233,7 @@ export default function ProductionPage() {
             </Button>
             <Button
               className="bg-primary"
-              disabled={!form.date || !form.quantity || saving}
+              disabled={saving}
               onClick={handleCreate}
             >
               {saving && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}
